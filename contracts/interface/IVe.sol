@@ -34,6 +34,8 @@ interface IVe {
   function isApprovedOrOwner(address, uint) external view returns (bool);
 
   function createLockFor(uint, uint, address) external returns (uint);
+  
+  function createLockForPartner(uint, uint, address) external returns (uint);
 
   function userPointEpoch(uint tokenId) external view returns (uint);
 

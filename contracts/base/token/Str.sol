@@ -15,10 +15,20 @@ contract Str is IERC20 {
   mapping(address => mapping(address => uint)) public override allowance;
 
   address public minter;
-
+  bool public initialMinted;
+  
   constructor() {
     minter = msg.sender;
     _mint(msg.sender, 0);
+  }
+
+  // Initial mint: total 750k
+  // 100k for "Genesis" pools
+  // 650k for treasury
+  function initialMint(address _recipient) external {
+      require(msg.sender == minter && !initialMinted);
+      initialMinted = true;
+      _mint(_recipient, 75 * 1e4 * 1e18);
   }
 
   // No checks as its meant to be once off to set minting rights to Minter

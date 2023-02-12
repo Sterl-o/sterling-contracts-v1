@@ -24,6 +24,7 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
   address immutable public override token;
   uint public supply;
   mapping(uint => LockedBalance) public locked;
+  address public minterContract;
 
   mapping(uint => uint) public ownershipChange;
 
@@ -96,6 +97,7 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
   /// @param token_ `ERC20CRV` token address
   constructor(address token_, address controller_) {
     token = token_;
+    minterContract = msg.sender;
     controller = controller_;
     _pointHistory[0].blk = block.number;
     _pointHistory[0].ts = block.timestamp;
@@ -109,6 +111,11 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
     // burn-ish
     emit Transfer(address(this), address(0), tokenId);
   }
+
+  function setMinterContract(address _minterContract) external {
+        require(msg.sender == minterContract);
+        minterContract = _minterContract;
+    }
 
   function _voter() internal view returns (address) {
     return IController(controller).voter();
