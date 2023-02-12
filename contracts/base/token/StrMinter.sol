@@ -103,7 +103,7 @@ contract StrMinter is IMinter {
     - token.balanceOf(address(this));
   }
 
-  /// @dev Emission calculation is 2% of available supply to mint adjusted by circulating / total supply
+  /// @dev Emission calculation is 1% of available supply to mint adjusted by circulating / total supply
   function calculateEmission() external view returns (uint) {
     return _calculateEmission();
   }
@@ -111,7 +111,7 @@ contract StrMinter is IMinter {
   function _calculateEmission() internal view returns (uint) {
     // use adjusted circulation supply for avoid first weeks gaps
     // baseWeeklyEmission should be decrease every week
-    return baseWeeklyEmission * _circulatingSupply() / token.totalSupply();
+    return (baseWeeklyEmission * emissionValue) / PRECISION;
   }
 
   /// @dev Weekly emission takes the max of calculated (aka target) emission versus circulating tail end emission
@@ -129,7 +129,7 @@ contract StrMinter is IMinter {
   }
 
   function _circulatingEmission() internal view returns (uint) {
-    return _circulatingSupply() * _TAIL_EMISSION / _TAIL_EMISSION_DENOMINATOR;
+    return (_circulatingSupply() * _TAIL_EMISSION) / _TAIL_EMISSION_DENOMINATOR;
   }
 
   /// @dev Update period can only be called once per cycle (1 week)
@@ -139,13 +139,13 @@ contract StrMinter is IMinter {
     if (block.timestamp >= _period + _WEEK && initializer == address(0)) {
       _period = block.timestamp / _WEEK * _WEEK;
       activePeriod = _period;
-      uint _weekly = _weeklyEmission(); // FIX HERE
+      uint _weekly = _weeklyEmission();
       // slightly decrease weekly emission
-      baseWeeklyEmission = baseWeeklyEmission // FIX HERE
+      baseWeeklyEmission = baseWeeklyEmission
       * emissionValue
       / _WEEKLY_EMISSION_DECREASE_DENOMINATOR;
 
-      uint _teamEmissions = (teamRate * _weekly) / PRECISION; // FIX HERE
+      uint _teamEmissions = (teamRate * _weekly) / PRECISION;
       uint _required = _weekly + _teamEmissions;
       uint _balanceOf = token.balanceOf(address(this));
       if (_balanceOf < _required) {
