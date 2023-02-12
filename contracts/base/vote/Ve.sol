@@ -33,6 +33,9 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
   /// @dev user -> Point[userEpoch]
   mapping(uint => Point[1000000000]) internal _userPointHistory;
 
+  mapping(uint => bool) public isPartnerToken;
+  mapping(uint => uint) public partnerTokenInitialLockTime;
+  
   mapping(uint => uint) public override userPointEpoch;
   mapping(uint => int128) public slopeChanges; // time -> signed slope change
 
@@ -438,13 +441,36 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
     if (_tokenId != 0) {
       // Calculate slopes and biases
       // Kept at zero when they have to
-      if (oldLocked.end > block.timestamp && oldLocked.amount > 0) {
-        uOld.slope = oldLocked.amount / I_MAX_TIME;
-        uOld.bias = uOld.slope * int128(int256(oldLocked.end - block.timestamp));
-      }
-      if (newLocked.end > block.timestamp && newLocked.amount > 0) {
-        uNew.slope = newLocked.amount / I_MAX_TIME;
-        uNew.bias = uNew.slope * int128(int256(newLocked.end - block.timestamp));
+      if (isPartnerToken[_tokenId]) {
+        if (oldLocked.end > block.timestamp && oldLocked.amount > 0) {
+          uint currentPartnerEpoch = ((block.timestamp - partnerTokenInitialLockTime[_tokenId]) / (old_locked.end - partnerTokenInitialLockTime[_tokenId])) * 208; // percentage of time passed since initial lock until end lock time multplied by the number of locking weeks for partners
+          if (currentPartnerEpoch > 200) {
+            uOld.slope = oldLocked.amount / I_MAX_TIME;
+            uOld.bias = uOld.slope * int128(int256(oldLocked.end - block.timestamp));
+          } else {
+            uOld.slope = 0;
+            uOld.bias = oldLocked.amount;
+          }
+        }
+        if (newLocked.end > block.timestamp && newLocked.amount > 0) {
+          uint currentPartnerEpoch = ((block.timestamp - partnerTokenInitialLockTime[_tokenId]) / (old_locked.end - partnerTokenInitialLockTime[_tokenId])) * 208; // percentage of time passed since initial lock until end lock time multplied by the number of locking weeks for partners
+          if (currentPartnerEpoch > 200) {
+            uNew.slope = newLocked.amount / I_MAX_TIME;
+            uNew.bias = uNew.slope * int128(int256(newLocked.end - block.timestamp));
+          } else {
+            uNew.slope = 0;
+            uNew.bias = newLocked.amount;
+          }
+        }
+      } else {
+        if (oldLocked.end > block.timestamp && oldLocked.amount > 0) {
+          uOld.slope = oldLocked.amount / I_MAX_TIME;
+          uOld.bias = uOld.slope * int128(int256(oldLocked.end - block.timestamp));
+        }
+        if (newLocked.end > block.timestamp && newLocked.amount > 0) {
+          uNew.slope = newLocked.amount / I_MAX_TIME;
+          uNew.bias = uNew.slope * int128(int256(newLocked.end - block.timestamp));
+        }
       }
 
       // Read values of scheduled changes in the slope
@@ -654,15 +680,23 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
   /// @param _value Amount to deposit
   /// @param _lockDuration Number of seconds to lock tokens for (rounded down to nearest week)
   /// @param _to Address to deposit
-  function _createLock(uint _value, uint _lockDuration, address _to) internal returns (uint) {
+  function _createLock(uint _value, uint _lockDuration, address _to, bool _isPartnerLock) internal returns (uint) {
     require(_value > 0, "zero value");
     // Lock time is rounded down to weeks
     uint unlockTime = (block.timestamp + _lockDuration) / WEEK * WEEK;
     require(unlockTime > block.timestamp, 'Can only lock until time in the future');
-    require(unlockTime <= block.timestamp + MAX_TIME, 'Voting lock can be 4 years max');
-
+    if (_isPartnerLock) {
+      require(unlockTime <= block.timestamp + (MAX_TIME * 26), 'Voting lock can be 4 years max');
+    } else {
+      require(unlockTime <= block.timestamp + MAX_TIME, 'Voting lock can be 8 weeks max');
+    }
+    
     ++tokenId;
     uint _tokenId = tokenId;
+    if (_isPartnerLock) {
+      isPartnerToken[_tokenId] = true;
+      partnerTokenInitialLockTime[_tokenId] = block.timestamp;
+    }
     _mint(_to, _tokenId);
 
     _depositFor(_tokenId, _value, unlockTime, locked[_tokenId], DepositType.CREATE_LOCK_TYPE);
@@ -675,14 +709,20 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
   /// @param _to Address to deposit
   function createLockFor(uint _value, uint _lockDuration, address _to)
   external lock override returns (uint) {
-    return _createLock(_value, _lockDuration, _to);
+    return _createLock(_value, _lockDuration, _to, false);
+  }
+
+  function createLockForPartner(uint _value, uint _lockDuration, address _to)
+  external lock override returns (uint) {
+    require(msg.sender == minterContract, "VotingEscrow: Not allowed to do this, you must be the Minter Contract");
+    return _createLock(_value, _lockDuration, _to, true);
   }
 
   /// @notice Deposit `_value` tokens for `msg.sender` and lock for `_lock_duration`
   /// @param _value Amount to deposit
   /// @param _lockDuration Number of seconds to lock tokens for (rounded down to nearest week)
   function createLock(uint _value, uint _lockDuration) external lock returns (uint) {
-    return _createLock(_value, _lockDuration, msg.sender);
+    return _createLock(_value, _lockDuration, msg.sender, false);
   }
 
   /// @notice Deposit `_value` additional tokens for `_tokenId` without modifying the unlock time
@@ -706,7 +746,15 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
     require(_locked.amount > 0, 'Nothing is locked');
     require(_locked.end > block.timestamp, 'Lock expired');
     require(unlockTime > _locked.end, 'Can only increase lock duration');
-    require(unlockTime <= block.timestamp + MAX_TIME, 'Voting lock can be 4 years max');
+
+    bool _isPartnerToken = isPartnerToken[_tokenId];
+    if (_isPartnerToken) {
+        require(unlock_time <= block.timestamp + (MAX_TIME * 26), 'Voting lock can be 4 years max');
+    } else {
+        require(unlock_time <= block.timestamp + MAX_TIME, 'Voting lock can be 8 weeks max');
+    } 
+
+
     require(_isApprovedOrOwner(msg.sender, _tokenId), "!owner");
 
     _depositFor(_tokenId, 0, unlockTime, _locked, DepositType.INCREASE_UNLOCK_TIME);

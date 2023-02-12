@@ -19,6 +19,7 @@ contract StrMinter is IMinter {
   /// @dev Allows minting once per week (reset every Thursday 00:00 UTC)
   uint internal constant _WEEK = 86400 * 7;
   uint internal constant _LOCK_PERIOD = 86400 * 7 * 8; // 8 weeks
+  uint internal constant _LOCK_PARTNER = 86400 * 7 * 208; // 208 weeks (4 years)
 
   /// @dev Decrease base weekly emission by 1%
   uint internal constant _WEEKLY_EMISSION_DECREASE = 99;
@@ -76,7 +77,7 @@ contract StrMinter is IMinter {
     token.approve(address(ve), type(uint).max);
     uint sum;
     for (uint i = 0; i < claimants.length; i++) {
-      ve.createLockFor(amounts[i], _LOCK_PERIOD, claimants[i]);
+      ve.createLockForPartner(amounts[i], _LOCK_PARTNER, claimants[i]); // CREATE LOCK FOR PARTNER 4 YEARS
       sum += amounts[i];
     }
     require(sum == totalAmount, "Wrong totalAmount");
