@@ -104,7 +104,6 @@ async function main() {
     gaugesFactory,
     bribesFactory,
     ve,
-    veDist,
     voter,
     minter,
   ] = await Deploy.deployStrSystem(
@@ -124,7 +123,6 @@ async function main() {
     + 'gaugesFactory: ' + gaugesFactory.address + '\n'
     + 'bribesFactory: ' + bribesFactory.address + '\n'
     + 've: ' + ve.address + '\n'
-    + 'veDist: ' + veDist.address + '\n'
     + 'voter: ' + voter.address + '\n'
     + 'minter: ' + minter.address + '\n'
 
@@ -137,9 +135,8 @@ async function main() {
   await Verify.verify(gaugesFactory.address);
   await Verify.verify(bribesFactory.address);
   await Verify.verifyWithArgs(ve.address, [token.address]);
-  await Verify.verifyWithArgs(veDist.address, [ve.address]);
   await Verify.verifyWithArgs(voter.address, [ve.address, FACTORY, gaugesFactory.address, bribesFactory.address]);
-  await Verify.verifyWithArgs(minter.address, [voter.address, ve.address, veDist.address]);
+  await Verify.verifyWithArgs(minter.address, [voter.address, ve.address]);
 
 }
 

@@ -195,7 +195,6 @@ function distribute(address token) external
 | StrMinter           | [0x08d7607b2FD46ae255040014a39CDC2094e55901](https://mumbai.polygonscan.com/address/0x08d7607b2FD46ae255040014a39CDC2094e55901#code)  |
 | StrVoter            | [0x75e1e98650c119c4E3dCE3070CE6A5397Ed70c6a](https://mumbai.polygonscan.com/address/0x75e1e98650c119c4E3dCE3070CE6A5397Ed70c6a#code)  |
 | Ve                   | [0xa4EB2E1284D9E30fb656Fe6b34c1680Ef5d4cBFC](https://mumbai.polygonscan.com/address/0xa4EB2E1284D9E30fb656Fe6b34c1680Ef5d4cBFC#code)  |
-| VeDist               | [0x0B62ad43837A69Ad60289EEea7C6e907e759F6E8](https://mumbai.polygonscan.com/address/0x0B62ad43837A69Ad60289EEea7C6e907e759F6E8#code)  |
 | Controller           | [0xC363F3D4e1C005bf5321040653A088F71Bb974Ab](https://mumbai.polygonscan.com/address/0xC363F3D4e1C005bf5321040653A088F71Bb974Ab#code)  |
 
 
@@ -212,5 +211,4 @@ function distribute(address token) external
 | StrMinter          | [0xAda8e498cbb580937F72b6FEa696cAB1EE9E22B2](https://polygonscan.com/address/0xAda8e498cbb580937F72b6FEa696cAB1EE9E22B2)  |
 | StrVoter           | [0x649BdF58B09A0Cd4Ac848b42c4B5e1390A72A49A](https://polygonscan.com/address/0x649BdF58B09A0Cd4Ac848b42c4B5e1390A72A49A)  |
 | veSTR              | [0x060fa7aD32C510F12550c7a967999810dafC5697](https://polygonscan.com/address/0x060fa7aD32C510F12550c7a967999810dafC5697)  |
-| VeDist              | [0x3EfB1b284a3EBa3955c53b728a2Cc4182a07e92F](https://polygonscan.com/address/0x3EfB1b284a3EBa3955c53b728a2Cc4182a07e92F)  |
 | Controller          | [0x7377eA6Afb77Ba013B23306154691c231824522a](https://polygonscan.com/address/0x7377eA6Afb77Ba013B23306154691c231824522a)  |

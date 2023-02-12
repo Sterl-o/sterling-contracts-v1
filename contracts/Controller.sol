@@ -9,11 +9,9 @@ contract Controller is IController {
   address public governance;
   address public pendingGovernance;
 
-  address public veDist;
   address public voter;
 
   event SetGovernance(address value);
-  event SetVeDist(address value);
   event SetVoter(address value);
 
   constructor() {
@@ -33,11 +31,6 @@ contract Controller is IController {
   function acceptGovernance() external {
     require(msg.sender == pendingGovernance, "Not pending gov");
     governance = pendingGovernance;
-  }
-
-  function setVeDist(address _value) external onlyGov {
-    veDist = _value;
-    emit SetVeDist(_value);
   }
 
   function setVoter(address _value) external onlyGov {

@@ -15,8 +15,7 @@ import {
   GaugeFactory,
   GovernanceTreasury,
   Token,
-  Ve,
-  VeDist
+  Ve
 } from "../../typechain";
 import {Misc} from "../Misc";
 import {CoreAddresses} from "./CoreAddresses";
@@ -107,10 +106,6 @@ export class Deploy {
     return (await Deploy.deployContract(signer, 'Ve', token, controller)) as Ve;
   }
 
-  public static async deployVeDist(signer: SignerWithAddress, ve: string) {
-    return (await Deploy.deployContract(signer, 'VeDist', ve)) as VeDist;
-  }
-
   public static async deployStrVoter(
     signer: SignerWithAddress,
     ve: string,
@@ -160,7 +155,6 @@ export class Deploy {
       gaugesFactory,
       bribesFactory,
       ve,
-      veDist,
       voter,
       minter,
     ] = await Deploy.deployStrSystem(
@@ -181,7 +175,6 @@ export class Deploy {
       baseFactory as StrFactory,
       router as StrRouter01,
       ve as Ve,
-      veDist as VeDist,
       voter as StrVoter,
       minter as StrMinter,
       treasury as GovernanceTreasury
@@ -217,14 +210,11 @@ export class Deploy {
     const bribesFactory = await Deploy.deployBribeFactory(signer);
 
 
-    const veDist = await Deploy.deployVeDist(signer, ve.address);
     const voter = await Deploy.deployStrVoter(signer, ve.address, baseFactory, gaugesFactory.address, bribesFactory.address);
 
     const minter = await Deploy.deployStrMinter(signer, ve.address, controller.address, warmingUpPeriod);
 
     await Misc.runAndWait(() => token.setMinter(minter.address));
-    await Misc.runAndWait(() => veDist.setDepositor(minter.address));
-    await Misc.runAndWait(() => controller.setVeDist(veDist.address));
     await Misc.runAndWait(() => controller.setVoter(voter.address));
 
     await Misc.runAndWait(() => voter.initialize(voterTokens, minter.address));
@@ -240,7 +230,6 @@ export class Deploy {
       gaugesFactory,
       bribesFactory,
       ve,
-      veDist,
       voter,
       minter,
     ];
