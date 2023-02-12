@@ -8,7 +8,7 @@ import {BigNumber, ContractTransaction} from "ethers";
 const hre = require("hardhat");
 const log: Logger = new Logger(logSettings);
 
-const MATIC_CHAIN = Common.forCustomChain(
+const ARBITRUM_CHAIN = Common.forCustomChain(
   'mainnet', {
     name: 'arbitrum-one',
     networkId: 42161,
@@ -30,8 +30,8 @@ export class Misc {
   public static getChainConfig() {
     const net = hre.network.config.chainId;
     switch (net.chainId) {
-      case 137:
-        return MATIC_CHAIN;
+      case 42161:
+        return ARBITRUM_CHAIN;
       default:
         throw new Error('Unknown net ' + net.chainId)
     }

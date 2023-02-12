@@ -11,7 +11,7 @@ interface IRouter {
 
     function factory() external view returns (address);
 
-    function WMATIC() external view returns (address);
+    function WETH() external view returns (address);
 
     function addLiquidity(
         address tokenA,
@@ -25,15 +25,15 @@ interface IRouter {
         uint deadline
     ) external returns (uint amountA, uint amountB, uint liquidity);
     
-    function addLiquidityMATIC(
+    function addLiquidityETH(
         address token,
         bool stable,
         uint amountTokenDesired,
         uint amountTokenMin,
-        uint amountMATICMin,
+        uint amountETHMin,
         address to,
         uint deadline
-    ) external payable returns (uint amountToken, uint amountMATIC, uint liquidity);
+    ) external payable returns (uint amountToken, uint amountETH, uint liquidity);
     
     function removeLiquidity(
         address tokenA,
@@ -46,15 +46,15 @@ interface IRouter {
         uint deadline
     ) external returns (uint amountA, uint amountB);
 
-    function removeLiquidityMATIC(
+    function removeLiquidityETH(
         address token,
         bool stable,
         uint liquidity,
         uint amountTokenMin,
-        uint amountMATICMin,
+        uint amountETHMin,
         address to,
         uint deadline
-    ) external returns (uint amountToken, uint amountMATIC);
+    ) external returns (uint amountToken, uint amountETH);
 
     function removeLiquidityWithPermit(
         address tokenA,
@@ -68,16 +68,16 @@ interface IRouter {
         bool approveMax, uint8 v, bytes32 r, bytes32 s
     ) external returns (uint amountA, uint amountB);
 
-    function removeLiquidityMATICWithPermit(
+    function removeLiquidityETHWithPermit(
         address token,
         bool stable,
         uint liquidity,
         uint amountTokenMin,
-        uint amountMATICMin,
+        uint amountETHMin,
         address to,
         uint deadline,
         bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external returns (uint amountToken, uint amountMATIC);
+    ) external returns (uint amountToken, uint amountETH);
 
     function swapExactTokensForTokens(
         uint amountIn,
@@ -95,14 +95,14 @@ interface IRouter {
         uint deadline
     ) external returns (uint[] memory amounts);
 
-    function swapExactMATICForTokens(
+    function swapExactETHForTokens(
         uint amountOutMin,
         Route[] calldata routes,
         address to,
         uint deadline
     ) external payable returns (uint[] memory amounts);
 
-    function swapTokensForExactMATIC(
+    function swapTokensForExactETH(
         uint amountOut,
         uint amountInMax,
         Route[] calldata routes,
@@ -110,7 +110,7 @@ interface IRouter {
         uint deadline
     ) external returns (uint[] memory amounts);
 
-    function swapExactTokensForMATIC(
+    function swapExactTokensForETH(
         uint amountIn,
         uint amountOutMin,
         Route[] calldata routes,
@@ -118,7 +118,7 @@ interface IRouter {
         uint deadline
     ) external returns (uint[] memory amounts);
 
-    function swapMATICForExactTokens(
+    function swapETHForExactTokens(
         uint amountOut,
         Route[] calldata routes,
         address to,
@@ -211,7 +211,7 @@ interface IRouter {
         uint deadline
     ) external returns (uint[] memory amounts);
 
-    function swapExactTokensForMATICSupportingFeeOnTransferTokens(
+    function swapExactTokensForETHSupportingFeeOnTransferTokens(
         uint amountIn,
         uint amountOutMin,
         Route[] calldata routes,
@@ -219,7 +219,7 @@ interface IRouter {
         uint deadline
     ) external;
 
-    function swapExactMATICForTokensSupportingFeeOnTransferTokens(
+    function swapExactETHForTokensSupportingFeeOnTransferTokens(
         uint amountOutMin,
         Route[] calldata routes,
         address to,
@@ -234,7 +234,7 @@ interface IRouter {
         uint deadline
     ) external;
 
-    function removeLiquidityMATICWithPermitSupportingFeeOnTransferTokens(
+    function removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(
         address token,
         bool stable,
         uint liquidity,
@@ -248,7 +248,7 @@ interface IRouter {
         bytes32 s
     ) external returns (uint amountToken, uint amountFTM);
 
-    function removeLiquidityMATICSupportingFeeOnTransferTokens(
+    function removeLiquidityETHSupportingFeeOnTransferTokens(
         address token,
         bool stable,
         uint liquidity,

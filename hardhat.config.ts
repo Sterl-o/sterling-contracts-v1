@@ -20,7 +20,7 @@ const argv = require('yargs/yargs')()
       type: "number",
       default: 31337
     },
-    maticRpcUrl: {
+    arbRpcUrl: {
       type: "string",
       default: ''
     },
@@ -44,7 +44,7 @@ const argv = require('yargs/yargs')()
       type: "string",
       default: "b55c9fcc2c60993e5c539f37ffd27d2058e7f77014823b461323db5eba817518" // random account
     },
-    maticForkBlock: {
+    arbForkBlock: {
       type: "number",
     },
     mumbaiForkBlock: {
@@ -63,17 +63,17 @@ export default {
       allowUnlimitedContractSize: true,
       chainId: !!argv.hardhatChainId ? argv.hardhatChainId : undefined,
       timeout: 99999 * 2,
-      gas: argv.hardhatChainId === 137 ? 19_000_000 :
+      gas: argv.hardhatChainId === 42161 ? 19_000_000 :
         argv.hardhatChainId === 80001 ? 19_000_000 :
           undefined,
       forking: !!argv.hardhatChainId && argv.hardhatChainId !== 31337 ? {
         url:
-          argv.hardhatChainId === 137 ? argv.maticRpcUrl :
+          argv.hardhatChainId === 42161 ? argv.arbRpcUrl :
           argv.hardhatChainId === 250 ? argv.ftmRpcUrl :
             argv.hardhatChainId === 80001 ? argv.mumbaiRpcUrl :
               undefined,
         blockNumber:
-          argv.hardhatChainId === 137 ? argv.maticForkBlock !== 0 ? argv.maticForkBlock : undefined :
+          argv.hardhatChainId === 42161 ? argv.arbForkBlock !== 0 ? argv.arbForkBlock : undefined :
           argv.hardhatChainId === 250 ? argv.ftmForkBlock !== 0 ? argv.ftmForkBlock : undefined :
             argv.hardhatChainId === 80001 ? argv.mumbaiForkBlock !== 0 ? argv.mumbaiForkBlock : undefined :
               undefined
@@ -84,10 +84,10 @@ export default {
         accountsBalance: "100000000000000000000000000000"
       },
     },
-    matic: {
-      url: argv.maticRpcUrl,
+    arbitrumOne: {
+      url: argv.arbRpcUrl,
       timeout: 99999,
-      chainId: 137,
+      chainId: 42161,
       // gas: 19_000_000,
       // gasPrice: 100_000_000_000,
       gasMultiplier: 1.3,

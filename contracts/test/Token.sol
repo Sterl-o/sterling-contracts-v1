@@ -164,7 +164,7 @@ contract Token {
     StrPair(pair).swap(0, 0, address(this), "");
   }
 
-  // --------------------- WMATIC
+  // --------------------- WETH
 
   function deposit() public payable {
     balanceOf[msg.sender] += msg.value;

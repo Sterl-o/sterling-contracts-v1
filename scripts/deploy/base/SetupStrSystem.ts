@@ -3,22 +3,22 @@ import {ethers} from "hardhat";
 import {Verify} from "../../Verify";
 import {Misc} from "../../Misc";
 import {BigNumber} from "ethers";
-import {MaticTestnetAddresses} from "../../addresses/MaticTestnetAddresses";
+import {ArbitrumTestnetAddresses} from "../../addresses/ArbitrumTestnetAddresses";
 import {writeFileSync} from "fs";
 import {parseUnits} from "ethers/lib/utils";
-import {MaticAddresses} from "../../addresses/MaticAddresses";
+import {ArbitrumAddresses} from "../../addresses/ArbitrumAddresses";
 
 
 const voterTokens = [
-  MaticAddresses.WMATIC_TOKEN,
-  MaticAddresses.WETH_TOKEN,
-  MaticAddresses.USDC_TOKEN,
-  MaticAddresses.WBTC_TOKEN,
-  MaticAddresses.FRAX_TOKEN,
-  MaticAddresses.DAI_TOKEN,
-  MaticAddresses.USDT_TOKEN,
-  MaticAddresses.UST_TOKEN,
-  MaticAddresses.MAI_TOKEN,
+  ArbitrumAddresses.WETH_TOKEN,
+  ArbitrumAddresses.WETH_TOKEN,
+  ArbitrumAddresses.USDC_TOKEN,
+  ArbitrumAddresses.WBTC_TOKEN,
+  ArbitrumAddresses.FRAX_TOKEN,
+  ArbitrumAddresses.DAI_TOKEN,
+  ArbitrumAddresses.USDT_TOKEN,
+  ArbitrumAddresses.UST_TOKEN,
+  ArbitrumAddresses.MAI_TOKEN,
 ];
 
 const claimants = [
@@ -108,7 +108,7 @@ async function main() {
     minter,
   ] = await Deploy.deployStrSystem(
     signer,
-    MaticTestnetAddresses.WMATIC_TOKEN,
+    ArbitrumTestnetAddresses.WETH_TOKEN,
     voterTokens,
     claimants,
     claimantsAmounts,
