@@ -10,9 +10,9 @@ const log: Logger = new Logger(logSettings);
 
 const MATIC_CHAIN = Common.forCustomChain(
   'mainnet', {
-    name: 'matic',
-    networkId: 137,
-    chainId: 137
+    name: 'arbitrum-one',
+    networkId: 42161,
+    chainId: 42161
   },
   'petersburg'
 );
@@ -46,6 +46,8 @@ export class Misc {
     } else if (net === 137) {
       return 'https://api.polygonscan.com/api'
     } else if (net === 250) {
+      return 'https://api.ftmscan.com//api'
+    } else if (net === 42161) {
       return 'https://api.ftmscan.com//api'
     } else {
       throw Error('network not found ' + net);

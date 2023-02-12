@@ -165,7 +165,7 @@ contract StrMinter is IMinter {
       }
       if (numEpoch == 208) emission = 999;
 
-      require(_sterling.transfer(team, _teamEmissions));
+      require(token.transfer(team, _teamEmissions));
 
       // REMOVE REBASE
       // IERC20(address(token)).safeTransfer(address(_veDist()), _growth);

@@ -17,8 +17,8 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
   using SafeERC20 for IERC20;
 
   uint internal constant WEEK = 1 weeks;
-  uint internal constant MAX_TIME = 4 * 365 * 86400;
-  int128 internal constant I_MAX_TIME = 4 * 365 * 86400;
+  uint internal constant MAX_TIME = 8 * 7 * 86400; // 8 weeks
+  int128 internal constant I_MAX_TIME = 8 * 7 * 86400; // 8 weeks
   uint internal constant MULTIPLIER = 1 ether;
 
   address immutable public override token;
