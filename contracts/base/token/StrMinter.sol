@@ -16,22 +16,25 @@ import "../../interface/IController.sol";
 contract StrMinter is IMinter {
   using SafeERC20 for IERC20;
 
+  uint internal numEpoch;
+
   /// @dev Allows minting once per week (reset every Thursday 00:00 UTC)
   uint internal constant _WEEK = 86400 * 7;
   uint internal constant _LOCK_PERIOD = 86400 * 7 * 8; // 8 weeks
   uint internal constant _LOCK_PARTNER = 86400 * 7 * 208; // 208 weeks (4 years)
 
   /// @dev Decrease base weekly emission by 1%
-  uint internal constant _WEEKLY_EMISSION_DECREASE = 99;
-  uint internal constant _WEEKLY_EMISSION_DECREASE_DENOMINATOR = 100;
+  uint public emissionValue = 990;
+  uint internal constant _WEEKLY_EMISSION_DECREASE_DENOMINATOR = 1000;
 
 
-  /// @dev Weekly emission threshold for the end game. 2% of circulation supply.
+  /// @dev Weekly emission threshold for the end game. 0.2% of circulation supply.
   uint internal constant _TAIL_EMISSION = 2;
-  uint internal constant _TAIL_EMISSION_DENOMINATOR = 100;
+  uint internal constant _TAIL_EMISSION_DENOMINATOR = 1000;
 
-  /// @dev Decrease weekly rewards for ve holders. 10% of the full amount.
-  uint internal constant _GROWTH_DIVIDER = 10;
+  /// @dev Team weekly emission threshold for the end game. 3% of circulation supply.
+  uint public teamRate = 30;
+  uint internal constant PRECISION = 1000;
 
   /// @dev The core parameter for determinate the whole emission dynamic.
   ///       Will be decreased every week.
@@ -129,15 +132,6 @@ contract StrMinter is IMinter {
     return _circulatingSupply() * _TAIL_EMISSION / _TAIL_EMISSION_DENOMINATOR;
   }
 
-  /// @dev Calculate inflation and adjust ve balances accordingly
-  function calculateGrowth(uint _minted) external view returns (uint) {
-    return _calculateGrowth(_minted);
-  }
-
-  function _calculateGrowth(uint _minted) internal view returns (uint) {
-    return IUnderlying(address(ve)).totalSupply() * _minted / token.totalSupply() / _GROWTH_DIVIDER;
-  }
-
   /// @dev Update period can only be called once per cycle (1 week)
   function updatePeriod() external override returns (uint) {
     uint _period = activePeriod;
@@ -145,16 +139,13 @@ contract StrMinter is IMinter {
     if (block.timestamp >= _period + _WEEK && initializer == address(0)) {
       _period = block.timestamp / _WEEK * _WEEK;
       activePeriod = _period;
-      uint _weekly = _weeklyEmission();
+      uint _weekly = _weeklyEmission(); // FIX HERE
       // slightly decrease weekly emission
-      baseWeeklyEmission = baseWeeklyEmission
-      * _WEEKLY_EMISSION_DECREASE
+      baseWeeklyEmission = baseWeeklyEmission // FIX HERE
+      * emissionValue
       / _WEEKLY_EMISSION_DECREASE_DENOMINATOR;
 
-      // REMOVE REBASE
-      // uint _growth = _calculateGrowth(_weekly);
-      // uint _required = _growth + _weekly;
-      uint _teamEmissions = (teamRate * _weekly) / PRECISION;
+      uint _teamEmissions = (teamRate * _weekly) / PRECISION; // FIX HERE
       uint _required = _weekly + _teamEmissions;
       uint _balanceOf = token.balanceOf(address(this));
       if (_balanceOf < _required) {
@@ -164,14 +155,9 @@ contract StrMinter is IMinter {
       unchecked {
           ++numEpoch;
       }
-      if (numEpoch == 208) emission = 999;
+      if (numEpoch == 208) emissionValue = 999;
 
       require(token.transfer(team, _teamEmissions));
-
-      // REMOVE REBASE
-      // IERC20(address(token)).safeTransfer(address(_veDist()), _growth);
-      // _veDist().checkpointToken();
-      // _veDist().checkpointTotalSupply();
 
       token.approve(address(_voter()), _weekly);
       _voter().notifyRewardAmount(_weekly);
