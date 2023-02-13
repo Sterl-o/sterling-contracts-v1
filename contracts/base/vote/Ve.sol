@@ -450,7 +450,7 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
       // Kept at zero when they have to
       if (isPartnerToken[_tokenId]) {
         if (oldLocked.end > block.timestamp && oldLocked.amount > 0) {
-          uint currentPartnerEpoch = ((block.timestamp - partnerTokenInitialLockTime[_tokenId]) / (old_locked.end - partnerTokenInitialLockTime[_tokenId])) * 208; // percentage of time passed since initial lock until end lock time multplied by the number of locking weeks for partners
+          uint currentPartnerEpoch = ((block.timestamp - partnerTokenInitialLockTime[_tokenId]) / (oldLocked.end - partnerTokenInitialLockTime[_tokenId])) * 208; // percentage of time passed since initial lock until end lock time multplied by the number of locking weeks for partners
           if (currentPartnerEpoch > 200) {
             uOld.slope = oldLocked.amount / I_MAX_TIME;
             uOld.bias = uOld.slope * int128(int256(oldLocked.end - block.timestamp));
@@ -460,7 +460,7 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
           }
         }
         if (newLocked.end > block.timestamp && newLocked.amount > 0) {
-          uint currentPartnerEpoch = ((block.timestamp - partnerTokenInitialLockTime[_tokenId]) / (old_locked.end - partnerTokenInitialLockTime[_tokenId])) * 208; // percentage of time passed since initial lock until end lock time multplied by the number of locking weeks for partners
+          uint currentPartnerEpoch = ((block.timestamp - partnerTokenInitialLockTime[_tokenId]) / (newLocked.end - partnerTokenInitialLockTime[_tokenId])) * 208; // percentage of time passed since initial lock until end lock time multplied by the number of locking weeks for partners
           if (currentPartnerEpoch > 200) {
             uNew.slope = newLocked.amount / I_MAX_TIME;
             uNew.bias = uNew.slope * int128(int256(newLocked.end - block.timestamp));
@@ -756,9 +756,9 @@ contract Ve is IERC721, IERC721Metadata, IVe, Reentrancy {
 
     bool _isPartnerToken = isPartnerToken[_tokenId];
     if (_isPartnerToken) {
-        require(unlock_time <= block.timestamp + (MAX_TIME * 26), 'Voting lock can be 4 years max');
+        require(unlockTime <= block.timestamp + (MAX_TIME * 26), 'Voting lock can be 4 years max');
     } else {
-        require(unlock_time <= block.timestamp + MAX_TIME, 'Voting lock can be 8 weeks max');
+        require(unlockTime <= block.timestamp + MAX_TIME, 'Voting lock can be 8 weeks max');
     } 
 
 

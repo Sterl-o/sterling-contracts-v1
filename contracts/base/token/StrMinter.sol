@@ -46,13 +46,13 @@ contract StrMinter is IMinter {
   address public immutable controller;
   uint public baseWeeklyEmission = _START_BASE_WEEKLY_EMISSION;
   uint public activePeriod;
+  address public team;
 
   address internal initializer;
 
   event Mint(
     address indexed sender,
     uint weekly,
-    uint growth,
     uint circulatingSupply,
     uint circulatingEmission
   );
@@ -63,6 +63,7 @@ contract StrMinter is IMinter {
     uint warmingUpPeriod // 2 by default
   ) {
     initializer = msg.sender;
+    team = msg.sender;
     token = IUnderlying(IVe(ve_).token());
     ve = IVe(ve_);
     controller = controller_;
@@ -86,6 +87,11 @@ contract StrMinter is IMinter {
     require(sum == totalAmount, "Wrong totalAmount");
     initializer = address(0);
     activePeriod = (block.timestamp + _WEEK) / _WEEK * _WEEK;
+  }
+
+  function setTeam(address _newTeam) external {
+    require(msg.sender == team, "Not team");
+    team = _newTeam;
   }
 
   function _voter() internal view returns (IVoter) {
@@ -162,7 +168,7 @@ contract StrMinter is IMinter {
       token.approve(address(_voter()), _weekly);
       _voter().notifyRewardAmount(_weekly);
 
-      emit Mint(msg.sender, _weekly, _growth, _circulatingSupply(), _circulatingEmission());
+      emit Mint(msg.sender, _weekly, _circulatingSupply(), _circulatingEmission());
     }
     return _period;
   }
