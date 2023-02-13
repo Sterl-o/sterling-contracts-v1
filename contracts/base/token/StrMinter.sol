@@ -59,7 +59,7 @@ contract StrMinter is IMinter {
 
   constructor(
     address ve_, // the ve(3,3) system that will be locked into
-    address controller_, // controller with veDist and voter addresses
+    address controller_, // controller with voter addresses
     uint warmingUpPeriod // 2 by default
   ) {
     initializer = msg.sender;
@@ -92,7 +92,7 @@ contract StrMinter is IMinter {
     return IVoter(IController(controller).voter());
   }
 
-  /// @dev Calculate circulating supply as total token supply - locked supply - veDist balance - minter balance
+  /// @dev Calculate circulating supply as total token supply - locked supply - minter balance
   function circulatingSupply() external view returns (uint) {
     return _circulatingSupply();
   }
