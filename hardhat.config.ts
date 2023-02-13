@@ -108,7 +108,10 @@ export default {
     },
   },
   etherscan: {
-    apiKey: argv.networkScanKey
+    apiKey: {
+      arbitrumOne: argv.networkScanKey
+    },
+    customChains: [argv.networkScanKey]
   },
   solidity: {
     compilers: [

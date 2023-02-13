@@ -22,7 +22,11 @@ export class Verify {
   public static async verify(address: string) {
     try {
       await hre.run("verify:verify", {
-        address
+        address,
+        network: "arbitrumOne",
+        apiKey: {
+            opera: process.env.ARB_SCAN_API_KEY,
+        },
       })
     } catch (e) {
       log.info('error verify ' + e);
@@ -33,7 +37,11 @@ export class Verify {
   public static async verifyWithArgs(address: string, args: any[]) {
     try {
       await hre.run("verify:verify", {
-        address, constructorArguments: args
+        address, constructorArguments: args,
+        network: "arbitrumOne",
+        apiKey: {
+            opera: process.env.ARB_SCAN_API_KEY,
+        },
       })
     } catch (e) {
       log.info('error verify ' + e);
@@ -44,7 +52,11 @@ export class Verify {
   public static async verifyWithContractName(address: string, contractPath: string, args?: any[]) {
     try {
       await hre.run("verify:verify", {
-        address, contract: contractPath, constructorArguments: args
+        address, contract: contractPath, constructorArguments: args,
+        network: "arbitrumOne",
+        apiKey: {
+            opera: process.env.ARB_SCAN_API_KEY,
+        },
       })
     } catch (e) {
       log.info('error verify ' + e);
@@ -55,7 +67,11 @@ export class Verify {
   public static async verifyWithArgsAndContractName(address: string, args: any[], contractPath: string) {
     try {
       await hre.run("verify:verify", {
-        address, constructorArguments: args, contract: contractPath
+        address, constructorArguments: args, contract: contractPath,
+        network: "arbitrumOne",
+        apiKey: {
+            opera: process.env.ARB_SCAN_API_KEY,
+        },
       })
     } catch (e) {
       log.info('error verify ' + e);

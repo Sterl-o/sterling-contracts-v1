@@ -2,7 +2,7 @@ import {ethers, web3} from "hardhat";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 import {Logger} from "tslog";
 import logSettings from "../../log_settings";
-import {BigNumber, ContractFactory, utils} from "ethers";
+import {BigNumber, Contract, ContractFactory, utils} from "ethers";
 import {Libraries} from "hardhat-deploy/dist/types";
 import {
   BribeFactory,
@@ -21,6 +21,13 @@ import {Misc} from "../Misc";
 import {CoreAddresses} from "./CoreAddresses";
 import { FantomAddresses } from "../addresses/FantomAddresses";
 
+import ControllerAbi from "../../artifacts/contracts/Controller.sol/Controller.json"
+import TokenAbi from "../../artifacts/contracts/base/token/Str.sol/Str.json"
+import VeAbi from "../../artifacts/contracts/base/vote/Ve.sol/Ve.json"
+import GaugesFactoryAbi from "../../artifacts/contracts/base/reward/GaugeFactory.sol/GaugeFactory.json"
+import BribesFactoryAbi from "../../artifacts/contracts/base/reward/BribeFactory.sol/BribeFactory.json"
+import VoterAbi from "../../artifacts/contracts/base/vote/StrVoter.sol/StrVoter.json"
+import MinterAbi from "../../artifacts/contracts/base/token/StrMinter.sol/StrMinter.json"
 const log: Logger = new Logger(logSettings);
 
 const libraries = new Map<string, string>([
@@ -194,7 +201,7 @@ export class Deploy {
     return [baseFactory, router, treasury];
   }
 
-  public static async deployStrSystem(
+  public static async deployStrSystemOld(
     signer: SignerWithAddress,
     networkToken: string,
     voterTokens: string[],
@@ -209,10 +216,7 @@ export class Deploy {
     const ve = await Deploy.deployVe(signer, token.address, controller.address);
     const gaugesFactory = await Deploy.deployGaugeFactory(signer);
     const bribesFactory = await Deploy.deployBribeFactory(signer);
-
-
     const voter = await Deploy.deployStrVoter(signer, ve.address, baseFactory, gaugesFactory.address, bribesFactory.address);
-
     const minter = await Deploy.deployStrMinter(signer, ve.address, controller.address, warmingUpPeriod);
 
     await Misc.runAndWait(() => token.initialMint(FantomAddresses.TreasuryWallet));
@@ -220,10 +224,52 @@ export class Deploy {
     await Misc.runAndWait(() => controller.setVoter(voter.address));
 
     await Misc.runAndWait(() => voter.initialize(voterTokens, minter.address));
+    await Misc.runAndWait(() => ve.setMinterContract(minter.address));
     await Misc.runAndWait(() => minter.initialize(
       minterClaimants,
       minterClaimantsAmounts,
       minterSum
+    ));
+    await Misc.runAndWait(() => minter.setTeam(
+      FantomAddresses.TreasuryWallet
+    ));
+
+    return [
+      controller,
+      token,
+      gaugesFactory,
+      bribesFactory,
+      ve,
+      voter,
+      minter,
+    ];
+  }
+
+  public static async deployStrSystem(
+    signer: SignerWithAddress,
+    networkToken: string,
+    voterTokens: string[],
+    minterClaimants: string[],
+    minterClaimantsAmounts: BigNumber[],
+    minterSum: BigNumber,
+    baseFactory: string,
+    warmingUpPeriod: number,
+  ) {
+    const controller = new Contract("0x326e194c6184b95f71890de65BA61b9BCd288d11", ControllerAbi.abi, signer) as Controller;
+    const token = new Contract("0x67910c8E12aE4743a6411ed07Bea78fA4a6859dc", TokenAbi.abi, signer);
+    const ve = new Contract("0x78c1a83BE9D01C1D2af35544567eA92DBA9E89db", VeAbi.abi, signer);
+    const gaugesFactory = new Contract("0xb410e2eFF9Ce59275376c23cFA51E7aA109a570C", GaugesFactoryAbi.abi, signer);
+    const bribesFactory = new Contract("0x9AC8c8074886b1A91E5D0f268313760E1855b799", BribesFactoryAbi.abi, signer);
+    const voter = new Contract("0x8FdF45f73f1Ce0acb228d51885e0Cdd1dCB68A73", VoterAbi.abi, signer);
+    const minter = new Contract("0xE66a67BCcc74f6B0DAdA02408adA7064cf6657E0", MinterAbi.abi, signer);
+
+    await Misc.runAndWait(() => minter.initialize(
+      minterClaimants,
+      minterClaimantsAmounts,
+      minterSum
+    ));
+    await Misc.runAndWait(() => minter.setTeam(
+      FantomAddresses.TreasuryWallet
     ));
 
     return [
