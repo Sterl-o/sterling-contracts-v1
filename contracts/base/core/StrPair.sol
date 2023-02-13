@@ -37,10 +37,8 @@ contract StrPair is IERC20, IPair, Reentrancy {
   uint public immutable chainId;
 
   uint internal constant MINIMUM_LIQUIDITY = 10 ** 3;
-  /// @dev 0.05% swap fee
-  uint internal constant SWAP_FEE = 2000;
-  /// @dev 50% of swap fee
-  uint internal constant TREASURY_FEE = 2;
+  /// @dev 0.02% swap fee
+  uint internal constant SWAP_FEE = 5000;
   /// @dev Capture oracle reading every 30 minutes
   uint internal constant PERIOD_SIZE = 1800;
 
@@ -165,11 +163,9 @@ contract StrPair is IERC20, IPair, Reentrancy {
 
   /// @dev Accrue fees on token0
   function _update0(uint amount) internal {
-    uint toTreasury = amount / TREASURY_FEE;
-    uint toFees = amount - toTreasury;
+    uint toFees = amount;
 
     // transfer the fees out to PairFees and Treasury
-    IERC20(token0).safeTransfer(treasury, toTreasury);
     IERC20(token0).safeTransfer(fees, toFees);
     // 1e32 adjustment is removed during claim
     uint _ratio = toFees * _FEE_PRECISION / totalSupply;
@@ -177,23 +173,19 @@ contract StrPair is IERC20, IPair, Reentrancy {
       index0 += _ratio;
     }
     // keep the same structure of events for compatability
-    emit Treasury(msg.sender, toTreasury, 0);
     emit Fees(msg.sender, toFees, 0);
   }
 
   /// @dev Accrue fees on token1
   function _update1(uint amount) internal {
-    uint toTreasury = amount / TREASURY_FEE;
-    uint toFees = amount - toTreasury;
+    uint toFees = amount;
 
-    IERC20(token1).safeTransfer(treasury, toTreasury);
     IERC20(token1).safeTransfer(fees, toFees);
     uint _ratio = toFees * _FEE_PRECISION / totalSupply;
     if (_ratio > 0) {
       index1 += _ratio;
     }
     // keep the same structure of events for compatability
-    emit Treasury(msg.sender, 0, toTreasury);
     emit Fees(msg.sender, 0, toFees);
   }
 

@@ -32,8 +32,8 @@ contract StrMinter is IMinter {
   uint internal constant _TAIL_EMISSION = 2;
   uint internal constant _TAIL_EMISSION_DENOMINATOR = 1000;
 
-  /// @dev Team weekly emission threshold for the end game. 3% of circulation supply.
-  uint public teamRate = 30;
+  /// @dev Team weekly emission threshold for the end game. 5% of circulation supply.
+  uint public teamRate = 50;
   uint internal constant PRECISION = 1000;
 
   /// @dev The core parameter for determinate the whole emission dynamic.
