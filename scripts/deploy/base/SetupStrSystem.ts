@@ -1,147 +1,338 @@
-import {Deploy} from "../Deploy";
-import {ethers} from "hardhat";
-import {Verify} from "../../Verify";
-import {Misc} from "../../Misc";
-import {BigNumber} from "ethers";
-import {writeFileSync} from "fs";
-import {parseUnits} from "ethers/lib/utils";
-import {FantomAddresses} from "../../addresses/FantomAddresses";
-
+import { Deploy } from "../Deploy";
+import { ethers } from "hardhat";
+import { Verify } from "../../Verify";
+import { Misc } from "../../Misc";
+import { BigNumber } from "ethers";
+import { writeFileSync } from "fs";
+import { parseUnits } from "ethers/lib/utils";
+import { FantomAddresses } from "../../addresses/FantomAddresses";
 
 const voterTokens = [
-  FantomAddresses.WETH_TOKEN,
-  FantomAddresses.WETH_TOKEN,
-  FantomAddresses.USDC_TOKEN,
-  FantomAddresses.WBTC_TOKEN,
-  FantomAddresses.FRAX_TOKEN,
-  FantomAddresses.DAI_TOKEN,
-  FantomAddresses.USDT_TOKEN,
-  FantomAddresses.UST_TOKEN,
-  FantomAddresses.MAI_TOKEN,
+    FantomAddresses.STR_TOKEN,
+    "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1".toLowerCase(), // weth
+    "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8".toLowerCase(), // usdc
+    "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9".toLowerCase(), // usdt
+    "0x040d1EdC9569d4Bab2D15287Dc5A4F10F56a56B8".toLowerCase(), // balancer
+    "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1".toLowerCase(), // dai
+    "0x031d35296154279DC1984dCD93E392b1f946737b".toLowerCase(), // cap
+    "0x354A6dA3fcde098F8389cad84b0182725c6C91dE".toLowerCase(), // compound
+    "0x6FE14d3CC2f7bDdffBa5CdB3BBE7467dd81ea101".toLowerCase(), // coti
+    "0xf4D48Ce3ee1Ac3651998971541bAdbb9A14D7234".toLowerCase(), // cream
+    "0x11cDb42B0EB46D95f990BeDD4695A6e3fA034978".toLowerCase(), // curve
+    "0x6C2C06790b3E3E3c38e12Ee22F8183b37a13EE55".toLowerCase(), // dopex
+    "0x2338a5d62E9A766289934e8d2e83a443e8065b83".toLowerCase(), // flux
+    "0x590020B1005b8b25f1a2C82c5f743c540dcfa24d".toLowerCase(), // gmx
+    "0xa0b862F60edEf4452F25B4160F177db44DeB6Cf1".toLowerCase(), // gnosis
+    "0x9623063377AD1B27544C965cCd7342f7EA7e88C7".toLowerCase(), // graph
+    "0xf97f4df75117a78c1A5a0DBb814Af92458539FB4".toLowerCase(), // chainlink
+    "0x539bdE0d7Dbd336b79148AA742883198BBF60342".toLowerCase(), // magic
+    "0x2e9a6Df78E42a30712c10a9Dc4b1C8656f8F2879".toLowerCase(), // maker
+    "0x6E6a3D8F1AfFAc703B1aEF1F43B8D2321bE40043".toLowerCase(), // olympus
+    "0x965772e0E9c84b6f359c8597C891108DcF1c5B1A".toLowerCase(), // pickle
+    "0x3E6648C5a70A150A88bCE65F4aD4d506Fe15d2AF".toLowerCase(), // Spell
+    "0xd4d42F0b6DEF4CE0383636770eF773390d85c61A".toLowerCase(), // sushi
+    "0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0".toLowerCase(), // uniswap
+    "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f".toLowerCase(), // wbtc
+    "0x82e3A8F066a6989666b031d916c43672085b1582".toLowerCase(), // yearn
+    "0x74ccbe53F77b08632ce0CB91D3A545bF6B8E0979".toLowerCase(), // fBOMB
+    "0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F".toLowerCase(), // frax
+    "0x9d2F299715D94d8A7E6F5eaa8E654E8c74a988A7".toLowerCase(), // frax share
+    "0x0C4681e6C0235179ec3D4F4fc4DF3d14FDD96017".toLowerCase(), // radiant
+    "0x6694340fc020c5E6B96567843da2df01b2CE1eb6".toLowerCase(), // STG
+    "0x10393c20975cF177a3513071bC110f7962CD67da".toLowerCase(), // Jones
+    "0x1622bF67e6e5747b81866fE0b85178a93C7F86e3".toLowerCase(), // Unami
+    "0x7F91531fC25DD262aebf57E8EBe9A6a6df372E96".toLowerCase(), // Woof
+    "0xf6Ba0043c40Ab8a4AE8eB326E96179bd6089d517".toLowerCase(), // Arboge
+    "0xDd8e557C8804D326c72074e987de02A23ae6Ef84".toLowerCase(), // Arbinu
+    "0x51318B7D00db7ACc4026C88c3952B66278B6A67F".toLowerCase(), // PLS
+    "0x32Eb7902D4134bf98A28b963D26de779AF92A212".toLowerCase(), // Rdpx
+    "0x5575552988A3A80504bBaeB1311674fCFd40aD4B".toLowerCase(), // SPA
 ];
 
 const claimants = [
-  "0x342952B86Bea9F2225f14D9f0dddDE070D1d0cC1",
-  "0xDCB5A4b6Ee39447D700F4FA3303B1d1c25Ea9cA7",
-  "0x342952B86Bea9F2225f14D9f0dddDE070D1d0cC1", // instead of UST guys we temporally sent it to Polygon DAO
-  "0x3FEACf904b152b1880bDE8BF04aC9Eb636fEE4d8",
-  "0xD4151c984e6CF33E04FFAAF06c3374B2926Ecc64",
-  "0x59cbff972fe0c19c881354a9cde52aca704da848",
-  "0xe37dD9A535c1D3c9fC33e3295B7e08bD1C42218D",
-  "0xa2722e04A1C70756AD297695e3c409507dc01341",
-  "0xeEc0974A7DBD8341A0aA07Ea95C61745aa691Cd9",
-  "0x3F2c32b452c235218d6e1c3988E4B1F5F74afD4a",
-  "0x3f81e3d58ff74B8b692e4936c310D3A5f333cF28",
-  "0xe96DAADd5d03F2f067965a466228f6D2CF4b3bD2",
-  "0x2709fa6FA31BD336455d4F96DdFC505b3ACA5A68",
-  "0x65A5076C0BA74e5f3e069995dc3DAB9D197d995c",
-  "0xb26adCEE4aDE6812b036b96d77A7E997Ddd0F611",
-  "0xd6f81D154D0532906140ef37268BC8eD2A17e008",
-  "0x4A0b0189035D3d710aa9DA8a13174Dd904c77148",
-  "0xe0c92587b8b2C1a8Bd069F1f0eB990fD42a2198F",
-  "0x6e321232bD0C4A223355B06eB6BeFB9975f5618e",
-  "0x3feE50d2888F2F7106fcdC0120295EBA3ae59245",
-  "0xB63428448De118A7A6B6622556BaDAcB409eA961",
-  "0xC1B43205C21071aF382587f9519d238240d8B4F3",
-  "0x20D61737f972EEcB0aF5f0a85ab358Cd083Dd56a",
-  "0xaA8B91ba8d78A0dc9a74FaBc54B6c4CC76191B0c",
-  "0xBdD38B2eaae34C9FCe187909e81e75CBec0dAA7A",
-  "0xcc16d636dD05b52FF1D8B9CE09B09BC62b11412B",
-  "0x42B5bb174CfA09012581425EAF62De1d1185ac7C",
-  "0x4F64c22FB06ab877Bf63f7064fA21C5c51cc85bf",
-  "0xcc7b93e2aa199785ebd57ca563ecea7314afa875",
-  "0x929A27c46041196e1a49C7B459d63eC9A20cd879",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
+    "0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10",
 ];
 
 const claimantsAmounts = [
-  parseUnits("10000000"),
-  parseUnits("3000000"),
-  parseUnits("1000000"),
-  parseUnits("1000000"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
-  parseUnits("192307.6923"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+    parseUnits("1000"),
+
+    parseUnits("15000"),
+    parseUnits("15000"),
+    parseUnits("15000"),
+    parseUnits("15000"),
+    parseUnits("15000"),
+    parseUnits("15000"),
+    parseUnits("15000"),
+    parseUnits("15000"),
+    parseUnits("15000"),
+    parseUnits("15000"),
 ];
 
 const FACTORY = '0x1d21Db6cde1b18c7E47B0F7F42f4b3F68b9beeC9';
 
 async function main() {
-  const signer = (await ethers.getSigners())[0];
+    const signer = (await ethers.getSigners())[0];
 
-  let minterMax = BigNumber.from("0");
+    let minterMax = BigNumber.from("0");
 
-  for (const c of claimantsAmounts) {
-    minterMax = minterMax.add(c);
-  }
+    for (const c of claimantsAmounts) {
+        minterMax = minterMax.add(c);
+    }
 
-  const [
-    controller,
-    token,
-    gaugesFactory,
-    bribesFactory,
-    ve,
-    voter,
-    minter,
-  ] = await Deploy.deployStrSystem(
-    signer,
-    FantomAddresses.WETH_TOKEN,
-    voterTokens,
-    claimants,
-    claimantsAmounts,
-    minterMax,
-    FACTORY,
-    1
-  );
+    const [
+        controller,
+        token,
+        gaugesFactory,
+        bribesFactory,
+        ve,
+        voter,
+        minter,
+    ] = await Deploy.deployStrSystem(
+        signer,
+        FantomAddresses.WETH_TOKEN,
+        voterTokens,
+        claimants,
+        claimantsAmounts,
+        minterMax,
+        FACTORY,
+        1
+    );
 
-  const data = ''
-    + 'controller: ' + controller.address + '\n'
-    + 'token: ' + token.address + '\n'
-    + 'gaugesFactory: ' + gaugesFactory.address + '\n'
-    + 'bribesFactory: ' + bribesFactory.address + '\n'
-    + 've: ' + ve.address + '\n'
-    + 'voter: ' + voter.address + '\n'
-    + 'minter: ' + minter.address + '\n'
+    const data = ''
+        + 'controller: ' + controller.address + '\n'
+        + 'token: ' + token.address + '\n'
+        + 'gaugesFactory: ' + gaugesFactory.address + '\n'
+        + 'bribesFactory: ' + bribesFactory.address + '\n'
+        + 've: ' + ve.address + '\n'
+        + 'voter: ' + voter.address + '\n'
+        + 'minter: ' + minter.address + '\n'
 
-  console.log(data);
-  writeFileSync('tmp/core.txt', data);
+    console.log(data);
+    writeFileSync('tmp/core.txt', data);
 
-  await Misc.wait(5);
+    await Misc.wait(5);
 
-  await Verify.verify(token.address);
-  await Verify.verify(gaugesFactory.address);
-  await Verify.verify(bribesFactory.address);
-  await Verify.verifyWithArgs(ve.address, [token.address]);
-  await Verify.verifyWithArgs(voter.address, [ve.address, FACTORY, gaugesFactory.address, bribesFactory.address]);
-  await Verify.verifyWithArgs(minter.address, [voter.address, ve.address]);
+    await Verify.verify(token.address);
+    await Verify.verify(gaugesFactory.address);
+    await Verify.verify(bribesFactory.address);
+    await Verify.verifyWithArgs(ve.address, [token.address]);
+    await Verify.verifyWithArgs(voter.address, [ve.address, FACTORY, gaugesFactory.address, bribesFactory.address]);
+    await Verify.verifyWithArgs(minter.address, [voter.address, ve.address]);
 
 }
 
 main()
-  .then(() => process.exit(0))
-  .catch(error => {
-    console.error(error);
-    process.exit(1);
-  });
+    .then(() => process.exit(0))
+    .catch(error => {
+        console.error(error);
+        process.exit(1);
+    });
