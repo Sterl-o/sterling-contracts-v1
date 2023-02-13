@@ -3,12 +3,12 @@ import {ethers} from "hardhat";
 import {Verify} from "../../Verify";
 import {Misc} from "../../Misc";
 import {writeFileSync} from "fs";
-import {ArbitrumAddresses} from "../../addresses/ArbitrumAddresses";
+import {FantomAddresses} from "../../addresses/FantomAddresses";
 
 async function main() {
   const signer = (await ethers.getSigners())[0];
 
-  const core = await Deploy.deployDex(signer, ArbitrumAddresses.WETH_TOKEN)
+  const core = await Deploy.deployDex(signer, FantomAddresses.WETH_TOKEN)
 
   const data = ''
     + 'factory: ' + core[0].address + '\n'
@@ -22,7 +22,7 @@ async function main() {
 
   await Verify.verify(core[2].address);
   await Verify.verifyWithArgs(core[0].address, [core[2].address]);
-  await Verify.verifyWithArgs(core[1].address, [core[0].address, ArbitrumAddresses.WETH_TOKEN]);
+  await Verify.verifyWithArgs(core[1].address, [core[0].address, FantomAddresses.WETH_TOKEN]);
 
 }
 
