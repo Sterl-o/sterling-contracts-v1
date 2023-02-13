@@ -215,8 +215,8 @@ export class Deploy {
 
     const minter = await Deploy.deployStrMinter(signer, ve.address, controller.address, warmingUpPeriod);
 
+    await Misc.runAndWait(() => token.initialMint(FantomAddresses.TreasuryWallet));
     await Misc.runAndWait(() => token.setMinter(minter.address));
-    await Misc.runAndWait(() => token.setMinter(FantomAddresses.TreasuryWallet));
     await Misc.runAndWait(() => controller.setVoter(voter.address));
 
     await Misc.runAndWait(() => voter.initialize(voterTokens, minter.address));
