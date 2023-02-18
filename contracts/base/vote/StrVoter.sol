@@ -79,8 +79,9 @@ contract StrVoter is IVoter, Reentrancy {
 
   function initialize(address[] memory _tokens, address _minter) external {
     require(msg.sender == minter, "!minter");
-    for (uint i = 0; i < _tokens.length; i++) {
+    for (uint i; i < _tokens.length;) {
       _whitelist(_tokens[i]);
+      unchecked { ++i; }
     }
     minter = _minter;
   }
@@ -107,7 +108,7 @@ contract StrVoter is IVoter, Reentrancy {
     uint _poolVoteCnt = _poolVote.length;
     int256 _totalWeight = 0;
 
-    for (uint i = 0; i < _poolVoteCnt; i ++) {
+    for (uint i; i < _poolVoteCnt;) {
       address _pool = _poolVote[i];
       int256 _votes = votes[_tokenId][_pool];
       _updateFor(gauges[_pool]);
@@ -120,6 +121,7 @@ contract StrVoter is IVoter, Reentrancy {
         _totalWeight -= _votes;
       }
       emit Abstained(_tokenId, _votes);
+      unchecked { ++i; }
     }
     totalWeight -= uint(_totalWeight);
     usedWeights[_tokenId] = 0;
@@ -132,8 +134,9 @@ contract StrVoter is IVoter, Reentrancy {
     uint _poolCnt = _poolVote.length;
     int256[] memory _weights = new int256[](_poolCnt);
 
-    for (uint i = 0; i < _poolCnt; i ++) {
+    for (uint i; i < _poolCnt;) {
       _weights[i] = votes[_tokenId][_poolVote[i]];
+      unchecked { ++i; }
     }
 
     _vote(_tokenId, _poolVote, _weights);
@@ -147,11 +150,12 @@ contract StrVoter is IVoter, Reentrancy {
     int256 _totalWeight = 0;
     int256 _usedWeight = 0;
 
-    for (uint i = 0; i < _poolCnt; i++) {
+    for (uint i; i < _poolCnt;) {
       _totalVoteWeight += _weights[i] > 0 ? _weights[i] : - _weights[i];
+      unchecked { ++i; }
     }
 
-    for (uint i = 0; i < _poolCnt; i++) {
+    for (uint i; i < _poolCnt;) {
       address _pool = _poolVote[i];
       address _gauge = gauges[_pool];
 
@@ -172,6 +176,7 @@ contract StrVoter is IVoter, Reentrancy {
       _usedWeight += _poolWeight;
       _totalWeight += _poolWeight;
       emit Voted(msg.sender, _tokenId, _poolWeight);
+      unchecked { ++i; }
     }
     if (_usedWeight > 0) IVe(ve).voting(_tokenId);
     totalWeight += uint(_totalWeight);
@@ -186,10 +191,8 @@ contract StrVoter is IVoter, Reentrancy {
   }
 
   /// @dev Add token to whitelist. Only pools with whitelisted tokens can be added to gauge.
-  function whitelist(address _token, uint _tokenId) external {
-    require(_tokenId > 0, "!token");
-    require(msg.sender == IERC721(ve).ownerOf(_tokenId), "!owner");
-    require(IVe(ve).balanceOfNFT(_tokenId) > _listingFee(), "!power");
+  function whitelist(address _token) external {
+    require(IMinter(minter).team() == msg.sender, "!team");
     _whitelist(_token);
   }
 
@@ -200,18 +203,14 @@ contract StrVoter is IVoter, Reentrancy {
   }
 
   /// @dev Add a token to a gauge/bribe as possible reward.
-  function registerRewardToken(address _token, address _gaugeOrBribe, uint _tokenId) external {
-    require(_tokenId > 0, "!token");
-    require(msg.sender == IERC721(ve).ownerOf(_tokenId), "!owner");
-    require(IVe(ve).balanceOfNFT(_tokenId) > _listingFee(), "!power");
+  function registerRewardToken(address _token, address _gaugeOrBribe) external {
+    require(IMinter(minter).team() == msg.sender, "!team");
     IMultiRewardsPool(_gaugeOrBribe).registerRewardToken(_token);
   }
 
   /// @dev Remove a token from a gauge/bribe allowed rewards list.
-  function removeRewardToken(address _token, address _gaugeOrBribe, uint _tokenId) external {
-    require(_tokenId > 0, "!token");
-    require(msg.sender == IERC721(ve).ownerOf(_tokenId), "!owner");
-    require(IVe(ve).balanceOfNFT(_tokenId) > _listingFee(), "!power");
+  function removeRewardToken(address _token, address _gaugeOrBribe) external {
+    require(IMinter(minter).team() == msg.sender, "!team");
     IMultiRewardsPool(_gaugeOrBribe).removeRewardToken(_token);
   }
 
@@ -295,15 +294,17 @@ contract StrVoter is IVoter, Reentrancy {
 
   /// @dev Update given gauges.
   function updateFor(address[] memory _gauges) external {
-    for (uint i = 0; i < _gauges.length; i++) {
+    for (uint i; i < _gauges.length;) {
       _updateFor(_gauges[i]);
+      unchecked { ++i; }
     }
   }
 
   /// @dev Update gauges by indexes in a range.
   function updateForRange(uint start, uint end) public {
-    for (uint i = start; i < end; i++) {
+    for (uint i = start; i < end;) {
       _updateFor(gauges[pools[i]]);
+      unchecked { ++i; }
     }
   }
 
@@ -341,31 +342,35 @@ contract StrVoter is IVoter, Reentrancy {
 
   /// @dev Batch claim rewards from given gauges.
   function claimRewards(address[] memory _gauges, address[][] memory _tokens) external {
-    for (uint i = 0; i < _gauges.length; i++) {
+    for (uint i; i < _gauges.length;) {
       IGauge(_gauges[i]).getReward(msg.sender, _tokens[i]);
+      unchecked { ++i; }
     }
   }
 
   /// @dev Batch claim rewards from given bribe contracts for given tokenId.
   function claimBribes(address[] memory _bribes, address[][] memory _tokens, uint _tokenId) external {
     require(IVe(ve).isApprovedOrOwner(msg.sender, _tokenId), "!owner");
-    for (uint i = 0; i < _bribes.length; i++) {
+    for (uint i; i < _bribes.length;) {
       IBribe(_bribes[i]).getRewardForOwner(_tokenId, _tokens[i]);
+      unchecked { ++i; }
     }
   }
 
   /// @dev Claim fees from given bribes.
   function claimFees(address[] memory _bribes, address[][] memory _tokens, uint _tokenId) external {
     require(IVe(ve).isApprovedOrOwner(msg.sender, _tokenId), "!owner");
-    for (uint i = 0; i < _bribes.length; i++) {
+    for (uint i; i < _bribes.length;) {
       IBribe(_bribes[i]).getRewardForOwner(_tokenId, _tokens[i]);
+      unchecked { ++i; }
     }
   }
 
   /// @dev Move fees from deposited pools to bribes for given gauges.
   function distributeFees(address[] memory _gauges) external {
-    for (uint i = 0; i < _gauges.length; i++) {
+    for (uint i; i < _gauges.length;) {
       IGauge(_gauges[i]).claimFees();
+      unchecked { ++i; }
     }
   }
 
@@ -388,20 +393,23 @@ contract StrVoter is IVoter, Reentrancy {
   /// @dev Distribute rewards for all pools.
   function distributeAll() external {
     uint length = pools.length;
-    for (uint x; x < length; x++) {
+    for (uint x; x < length;) {
       _distribute(gauges[pools[x]]);
+      unchecked { x++; }
     }
   }
 
   function distributeForPoolsInRange(uint start, uint finish) external {
-    for (uint x = start; x < finish; x++) {
+    for (uint x = start; x < finish;) {
       _distribute(gauges[pools[x]]);
+      unchecked { x++; }
     }
   }
 
   function distributeForGauges(address[] memory _gauges) external {
-    for (uint x = 0; x < _gauges.length; x++) {
+    for (uint x; x < _gauges.length;) {
       _distribute(_gauges[x]);
+      unchecked { x++; }
     }
   }
 }
