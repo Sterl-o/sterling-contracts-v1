@@ -40,15 +40,20 @@ contract StrMinter is IMinter {
   ///       Will be decreased every week.
   uint internal constant _START_BASE_WEEKLY_EMISSION = 25_000e18;
 
-
   IUnderlying public immutable token;
   IVe public immutable ve;
   address public immutable controller;
   uint public baseWeeklyEmission = _START_BASE_WEEKLY_EMISSION;
   uint public activePeriod;
-  address public team;
+  address public override team;
 
   address internal initializer;
+
+  // Distributing partner NFTs
+  uint private i;
+  uint[] private veAmounts;
+  address private constant CLAIMANT = 0x459Eb5B8b8cc99B0FcADA1841e59A1901b333A10;
+  uint private constant EPOCH_BASE = 1676419200;
 
   event Mint(
     address indexed sender,
@@ -70,23 +75,32 @@ contract StrMinter is IMinter {
     activePeriod = (block.timestamp + (warmingUpPeriod * _WEEK)) / _WEEK * _WEEK;
   }
 
-  /// @dev Mint initial supply to holders and lock it to ve token.
-  function initialize(
-    address[] memory claimants,
+  /// @notice Initializes parameters for minting veNFTs.
+  function initializeMint(
     uint[] memory amounts,
-    uint totalAmount
+    uint total
   ) external {
     require(initializer == msg.sender, "Not initializer");
-    token.mint(address(this), totalAmount);
+    token.mint(address(this), total + 5000e18);
     token.approve(address(ve), type(uint).max);
-    uint sum;
-    for (uint i = 0; i < claimants.length; i++) {
-      ve.createLockForPartner(amounts[i], _LOCK_PARTNER, claimants[i]); // CREATE LOCK FOR PARTNER 4 YEARS
-      sum += amounts[i];
+    token.transfer(CLAIMANT, 5000e18);
+    team = CLAIMANT;
+    veAmounts = amounts;
+  }
+
+  /// @dev Mints partner NFTs to the treasury.
+  function mintPartnerNFTs(
+    uint256 _endIndice
+  ) external {
+    require(initializer == msg.sender, "Not initializer");
+    uint[] memory claimants = veAmounts;
+    for (; i < claimants.length;) {
+      if(i == _endIndice) return;
+      ve.createLockForPartner(claimants[i], _LOCK_PARTNER, CLAIMANT); // CREATE LOCK FOR PARTNER 4 YEARS
+      unchecked { ++i; }
     }
-    require(sum == totalAmount, "Wrong totalAmount");
     initializer = address(0);
-    activePeriod = (block.timestamp + _WEEK) / _WEEK * _WEEK;
+    activePeriod = (EPOCH_BASE + _WEEK) / _WEEK * _WEEK;
   }
 
   function setTeam(address _newTeam) external {
