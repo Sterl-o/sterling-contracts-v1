@@ -13,7 +13,7 @@ interface IFactory {
 
   function pairCodeHash() external pure returns (bytes32);
 
-  function getPair(address tokenA, address token, bool stable) external view returns (address);
+  function getPair(address tokenA, address token, bool stable, uint16 fee) external view returns (address);
 
-  function createPair(address tokenA, address tokenB, bool stable) external returns (address pair);
+  function createPair(address tokenA, address tokenB, bool stable, uint16 fee) external returns (address pair);
 }

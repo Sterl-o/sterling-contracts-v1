@@ -37,8 +37,6 @@ contract StrPair is IERC20, IPair, Reentrancy {
   uint public immutable chainId;
 
   uint internal constant MINIMUM_LIQUIDITY = 10 ** 3;
-  /// @dev 0.02% swap fee
-  uint internal constant SWAP_FEE = 5000;
   /// @dev Capture oracle reading every 30 minutes
   uint internal constant PERIOD_SIZE = 1800;
 
@@ -53,6 +51,7 @@ contract StrPair is IERC20, IPair, Reentrancy {
   uint internal immutable decimals0;
   uint internal immutable decimals1;
 
+  uint16 public swapFee;
   uint public reserve0;
   uint public reserve1;
   uint public blockTimestampLast;
@@ -110,9 +109,9 @@ contract StrPair is IERC20, IPair, Reentrancy {
 
     DOMAIN_SEPARATOR = keccak256(
       abi.encode(
-        keccak256('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'),
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
         keccak256(bytes(name)),
-        keccak256('1'),
+        keccak256("1"),
         block.chainid,
         address(this)
       )
@@ -332,6 +331,13 @@ contract StrPair is IERC20, IPair, Reentrancy {
     return _prices;
   }
 
+  /// @notice Initializes the AMM swap fee.
+  /// @param _swapFee Swap fee for the liquidity pool contract.
+  function initializeFees(uint16 _swapFee) external {
+    require(_swapFee == 0, "StrPair: Swap fee already initialized");
+    swapFee = _swapFee;
+  }
+
   /// @dev This low-level function should be called from a contract which performs important safety checks
   ///      standard uniswap v2 implementation
   function mint(address to) external lock override returns (uint liquidity) {
@@ -350,7 +356,7 @@ contract StrPair is IERC20, IPair, Reentrancy {
     } else {
       liquidity = Math.min(_amount0 * _totalSupply / _reserve0, _amount1 * _totalSupply / _reserve1);
     }
-    require(liquidity > 0, 'StrPair: INSUFFICIENT_LIQUIDITY_MINTED');
+    require(liquidity > 0, "StrPair: INSUFFICIENT_LIQUIDITY_MINTED");
     _mint(to, liquidity);
 
     _update(_balance0, _balance1, _reserve0, _reserve1);
@@ -372,7 +378,7 @@ contract StrPair is IERC20, IPair, Reentrancy {
     amount0 = _liquidity * _balance0 / _totalSupply;
     // using balances ensures pro-rata distribution
     amount1 = _liquidity * _balance1 / _totalSupply;
-    require(amount0 > 0 && amount1 > 0, 'StrPair: INSUFFICIENT_LIQUIDITY_BURNED');
+    require(amount0 > 0 && amount1 > 0, "StrPair: INSUFFICIENT_LIQUIDITY_BURNED");
     _burn(address(this), _liquidity);
     IERC20(_token0).safeTransfer(to, amount0);
     IERC20(_token1).safeTransfer(to, amount1);
@@ -386,14 +392,14 @@ contract StrPair is IERC20, IPair, Reentrancy {
   /// @dev This low-level function should be called from a contract which performs important safety checks
   function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external override lock {
     require(!IFactory(factory).isPaused(), "StrPair: PAUSE");
-    require(amount0Out > 0 || amount1Out > 0, 'StrPair: INSUFFICIENT_OUTPUT_AMOUNT');
+    require(amount0Out > 0 || amount1Out > 0, "StrPair: INSUFFICIENT_OUTPUT_AMOUNT");
     (uint _reserve0, uint _reserve1) = (reserve0, reserve1);
-    require(amount0Out < _reserve0 && amount1Out < _reserve1, 'StrPair: INSUFFICIENT_LIQUIDITY');
+    require(amount0Out < _reserve0 && amount1Out < _reserve1, "StrPair: INSUFFICIENT_LIQUIDITY");
     uint _balance0;
     uint _balance1;
     {// scope for _token{0,1}, avoids stack too deep errors
       (address _token0, address _token1) = (token0, token1);
-      require(to != _token0 && to != _token1, 'StrPair: INVALID_TO');
+      require(to != _token0 && to != _token1, "StrPair: INVALID_TO");
       // optimistically transfer tokens
       if (amount0Out > 0) IERC20(_token0).safeTransfer(to, amount0Out);
       // optimistically transfer tokens
@@ -405,20 +411,20 @@ contract StrPair is IERC20, IPair, Reentrancy {
     }
     uint amount0In = _balance0 > _reserve0 - amount0Out ? _balance0 - (_reserve0 - amount0Out) : 0;
     uint amount1In = _balance1 > _reserve1 - amount1Out ? _balance1 - (_reserve1 - amount1Out) : 0;
-    require(amount0In > 0 || amount1In > 0, 'StrPair: INSUFFICIENT_INPUT_AMOUNT');
+    require(amount0In > 0 || amount1In > 0, "StrPair: INSUFFICIENT_INPUT_AMOUNT");
     {// scope for reserve{0,1}Adjusted, avoids stack too deep errors
-      (address _token0, address _token1) = (token0, token1);
+      (address _token0, address _token1, uint16 _swapFee) = (token0, token1, swapFee);
       // accrue fees for token0 and move them out of pool
-      if (amount0In > 0) _update0(amount0In / SWAP_FEE);
+      if (amount0In > 0) _update0(amount0In / _swapFee);
       // accrue fees for token1 and move them out of pool
-      if (amount1In > 0) _update1(amount1In / SWAP_FEE);
+      if (amount1In > 0) _update1(amount1In / _swapFee);
       // since we removed tokens, we need to reconfirm balances,
       // can also simply use previous balance - amountIn/ SWAP_FEE,
       // but doing balanceOf again as safety check
       _balance0 = IERC20(_token0).balanceOf(address(this));
       _balance1 = IERC20(_token1).balanceOf(address(this));
       // The curve, either x3y+y3x for stable pools, or x*y for volatile pools
-      require(_k(_balance0, _balance1) >= _k(_reserve0, _reserve1), 'StrPair: K');
+      require(_k(_balance0, _balance1) >= _k(_reserve0, _reserve1), "StrPair: K");
     }
 
     _update(_balance0, _balance1, _reserve0, _reserve1);
@@ -471,7 +477,7 @@ contract StrPair is IERC20, IPair, Reentrancy {
   function getAmountOut(uint amountIn, address tokenIn) external view override returns (uint) {
     (uint _reserve0, uint _reserve1) = (reserve0, reserve1);
     // remove fee from amount received
-    amountIn -= amountIn / SWAP_FEE;
+    amountIn -= amountIn / swapFee;
     return _getAmountOut(amountIn, tokenIn, _reserve0, _reserve1);
   }
 
@@ -540,16 +546,16 @@ contract StrPair is IERC20, IPair, Reentrancy {
     bytes32 r,
     bytes32 s
   ) external override {
-    require(deadline >= block.timestamp, 'StrPair: EXPIRED');
+    require(deadline >= block.timestamp, "StrPair: EXPIRED");
     bytes32 digest = keccak256(
       abi.encodePacked(
-        '\x19\x01',
+        "\x19\x01",
         DOMAIN_SEPARATOR,
         keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline))
       )
     );
     address recoveredAddress = ecrecover(digest, v, r, s);
-    require(recoveredAddress != address(0) && recoveredAddress == owner, 'StrPair: INVALID_SIGNATURE');
+    require(recoveredAddress != address(0) && recoveredAddress == owner, "StrPair: INVALID_SIGNATURE");
     allowance[owner][spender] = value;
 
     emit Approval(owner, spender, value);

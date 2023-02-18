@@ -12,7 +12,7 @@ contract StrFactory is IFactory {
   address public pendingPauser;
   address public immutable override treasury;
 
-  mapping(address => mapping(address => mapping(bool => address))) public override getPair;
+  mapping(address => mapping(address => mapping(bool => mapping(uint16 => address)))) public override getPair;
   address[] public allPairs;
   /// @dev Simplified check if its a pair, given that `stable` flag might not be available in peripherals
   mapping(address => bool) public override isPair;
@@ -62,19 +62,20 @@ contract StrFactory is IFactory {
     return (_temp0, _temp1, _temp);
   }
 
-  function createPair(address tokenA, address tokenB, bool stable)
+  function createPair(address tokenA, address tokenB, bool stable, uint16 fee)
   external override returns (address pair) {
-    require(tokenA != tokenB, 'StrFactory: IDENTICAL_ADDRESSES');
+    require(tokenA != tokenB, "StrFactory: IDENTICAL_ADDRESSES");
     (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-    require(token0 != address(0), 'StrFactory: ZERO_ADDRESS');
-    require(getPair[token0][token1][stable] == address(0), 'StrFactory: PAIR_EXISTS');
-    // notice salt includes stable as well, 3 parameters
-    bytes32 salt = keccak256(abi.encodePacked(token0, token1, stable));
+    require(token0 != address(0), "StrFactory: ZERO_ADDRESS");
+    require(getPair[token0][token1][stable][fee] == address(0), "StrFactory: PAIR_EXISTS");
+    // notice salt includes stable and fees as well, 4 parameters
+    bytes32 salt = keccak256(abi.encodePacked(token0, token1, stable, fee));
     (_temp0, _temp1, _temp) = (token0, token1, stable);
     pair = address(new StrPair{salt : salt}());
-    getPair[token0][token1][stable] = pair;
+    StrPair(pair).initializeFees(fee);
+    getPair[token0][token1][stable][fee] = pair;
     // populate mapping in the reverse direction
-    getPair[token1][token0][stable] = pair;
+    getPair[token1][token0][stable][fee] = pair;
     allPairs.push(pair);
     isPair[pair] = true;
     emit PairCreated(token0, token1, stable, pair, allPairs.length);
