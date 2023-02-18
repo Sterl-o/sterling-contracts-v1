@@ -132,22 +132,8 @@ contract Gauge is IGauge, MultiRewardsPoolBase {
     emit VeTokenUnlocked(account, tokenId);
   }
 
-  /// @dev Similar to Curve https://resources.curve.fi/reward-gauges/boosting-your-crv-rewards#formula
-  function _derivedBalance(address account) internal override view returns (uint) {
-    uint _tokenId = tokenIds[account];
-    uint _balance = balanceOf[account];
-    uint _derived = _balance * 40 / 100;
-    uint _adjusted = 0;
-    uint _supply = IERC20(ve).totalSupply();
-    if (account == IERC721(ve).ownerOf(_tokenId) && _supply > 0) {
-      _adjusted = (totalSupply * IVe(ve).balanceOfNFT(_tokenId) / _supply) * 60 / 100;
-    }
-    return Math.min((_derived + _adjusted), _balance);
-  }
-
   function notifyRewardAmount(address token, uint amount) external {
     _claimFees();
     _notifyRewardAmount(token, amount);
   }
-
 }
