@@ -16,6 +16,18 @@ contract StrRouter01 {
     address from;
     address to;
     bool stable;
+    uint16 fee;
+  }
+
+  struct PermitParams {
+    uint8 v;
+    bytes32 r;
+    bytes32 s;
+  }
+
+  struct SwapDest {
+    address to;
+    uint deadline;
   }
 
   address public immutable factory;
@@ -24,7 +36,7 @@ contract StrRouter01 {
   bytes32 immutable pairCodeHash;
 
   modifier ensure(uint deadline) {
-    require(deadline >= block.timestamp, 'StrRouter: EXPIRED');
+    require(deadline >= block.timestamp, "StrRouter: EXPIRED");
     _;
   }
 
@@ -44,22 +56,22 @@ contract StrRouter01 {
   }
 
   function _sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
-    require(tokenA != tokenB, 'StrRouter: IDENTICAL_ADDRESSES');
+    require(tokenA != tokenB, "StrRouter: IDENTICAL_ADDRESSES");
     (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-    require(token0 != address(0), 'StrRouter: ZERO_ADDRESS');
+    require(token0 != address(0), "StrRouter: ZERO_ADDRESS");
   }
 
-  function pairFor(address tokenA, address tokenB, bool stable) external view returns (address pair) {
-    return _pairFor(tokenA, tokenB, stable);
+  function pairFor(address tokenA, address tokenB, bool stable, uint16 fee) external view returns (address pair) {
+    return _pairFor(tokenA, tokenB, stable, fee);
   }
 
   /// @dev Calculates the CREATE2 address for a pair without making any external calls.
-  function _pairFor(address tokenA, address tokenB, bool stable) internal view returns (address pair) {
+  function _pairFor(address tokenA, address tokenB, bool stable, uint16 fee) internal view returns (address pair) {
     (address token0, address token1) = _sortTokens(tokenA, tokenB);
     pair = address(uint160(uint(keccak256(abi.encodePacked(
-        hex'ff',
+        hex"ff",
         factory,
-        keccak256(abi.encodePacked(token0, token1, stable)),
+        keccak256(abi.encodePacked(token0, token1, stable, fee)),
         pairCodeHash // init code hash
       )))));
   }
@@ -70,39 +82,39 @@ contract StrRouter01 {
 
   /// @dev Given some amount of an asset and pair reserves, returns an equivalent amount of the other asset.
   function _quoteLiquidity(uint amountA, uint reserveA, uint reserveB) internal pure returns (uint amountB) {
-    require(amountA > 0, 'StrRouter: INSUFFICIENT_AMOUNT');
-    require(reserveA > 0 && reserveB > 0, 'StrRouter: INSUFFICIENT_LIQUIDITY');
+    require(amountA > 0, "StrRouter: INSUFFICIENT_AMOUNT");
+    require(reserveA > 0 && reserveB > 0, "StrRouter: INSUFFICIENT_LIQUIDITY");
     amountB = amountA * reserveB / reserveA;
   }
 
-  function getReserves(address tokenA, address tokenB, bool stable) external view returns (uint reserveA, uint reserveB) {
-    return _getReserves(tokenA, tokenB, stable);
+  function getReserves(address tokenA, address tokenB, bool stable, uint16 fee) external view returns (uint reserveA, uint reserveB) {
+    return _getReserves(tokenA, tokenB, stable, fee);
   }
 
   /// @dev Fetches and sorts the reserves for a pair.
-  function _getReserves(address tokenA, address tokenB, bool stable) internal view returns (uint reserveA, uint reserveB) {
+  function _getReserves(address tokenA, address tokenB, bool stable, uint16 fee) internal view returns (uint reserveA, uint reserveB) {
     (address token0,) = _sortTokens(tokenA, tokenB);
-    (uint reserve0, uint reserve1,) = IPair(_pairFor(tokenA, tokenB, stable)).getReserves();
+    (uint reserve0, uint reserve1,) = IPair(_pairFor(tokenA, tokenB, stable, fee)).getReserves();
     (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
   }
 
   /// @dev Performs chained getAmountOut calculations on any number of pairs.
-  function getAmountOut(uint amountIn, address tokenIn, address tokenOut) external view returns (uint amount, bool stable) {
-    address pair = _pairFor(tokenIn, tokenOut, true);
+  function getAmountOut(uint amountIn, address tokenIn, address tokenOut, uint16 feeSetting) external view returns (uint amount, bool stable) {
+    address pair = _pairFor(tokenIn, tokenOut, true, feeSetting);
     uint amountStable;
     uint amountVolatile;
     if (IFactory(factory).isPair(pair)) {
       amountStable = IPair(pair).getAmountOut(amountIn, tokenIn);
     }
-    pair = _pairFor(tokenIn, tokenOut, false);
+    pair = _pairFor(tokenIn, tokenOut, false, feeSetting);
     if (IFactory(factory).isPair(pair)) {
       amountVolatile = IPair(pair).getAmountOut(amountIn, tokenIn);
     }
     return amountStable > amountVolatile ? (amountStable, true) : (amountVolatile, false);
   }
 
-  function getExactAmountOut(uint amountIn, address tokenIn, address tokenOut, bool stable) external view returns (uint) {
-    address pair = _pairFor(tokenIn, tokenOut, stable);
+  function getExactAmountOut(uint amountIn, address tokenIn, address tokenOut, bool stable, uint16 fee) external view returns (uint) {
+    address pair = _pairFor(tokenIn, tokenOut, stable, fee);
     if (IFactory(factory).isPair(pair)) {
       return IPair(pair).getAmountOut(amountIn, tokenIn);
     }
@@ -115,11 +127,11 @@ contract StrRouter01 {
   }
 
   function _getAmountsOut(uint amountIn, Route[] memory routes) internal view returns (uint[] memory amounts) {
-    require(routes.length >= 1, 'StrRouter: INVALID_PATH');
+    require(routes.length >= 1, "StrRouter: INVALID_PATH");
     amounts = new uint[](routes.length + 1);
     amounts[0] = amountIn;
     for (uint i = 0; i < routes.length; i++) {
-      address pair = _pairFor(routes[i].from, routes[i].to, routes[i].stable);
+      address pair = _pairFor(routes[i].from, routes[i].to, routes[i].stable, routes[i].fee);
       if (IFactory(factory).isPair(pair)) {
         amounts[i + 1] = IPair(pair).getAmountOut(amounts[i], routes[i].from);
       }
@@ -134,16 +146,17 @@ contract StrRouter01 {
     address tokenA,
     address tokenB,
     bool stable,
+    uint16 fee,
     uint amountADesired,
     uint amountBDesired
   ) external view returns (uint amountA, uint amountB, uint liquidity) {
-    // create the pair if it doesn't exist yet
-    address _pair = IFactory(factory).getPair(tokenA, tokenB, stable);
+    // create the pair if it doesn"t exist yet
+    address _pair = IFactory(factory).getPair(tokenA, tokenB, stable, fee);
     (uint reserveA, uint reserveB) = (0, 0);
     uint _totalSupply = 0;
     if (_pair != address(0)) {
       _totalSupply = IERC20(_pair).totalSupply();
-      (reserveA, reserveB) = _getReserves(tokenA, tokenB, stable);
+      (reserveA, reserveB) = _getReserves(tokenA, tokenB, stable, fee);
     }
     if (reserveA == 0 && reserveB == 0) {
       (amountA, amountB) = (amountADesired, amountBDesired);
@@ -166,16 +179,17 @@ contract StrRouter01 {
     address tokenA,
     address tokenB,
     bool stable,
+    uint16 fee,
     uint liquidity
   ) external view returns (uint amountA, uint amountB) {
-    // create the pair if it doesn't exist yet
-    address _pair = IFactory(factory).getPair(tokenA, tokenB, stable);
+    // create the pair if it doesn"t exist yet
+    address _pair = IFactory(factory).getPair(tokenA, tokenB, stable, fee);
 
     if (_pair == address(0)) {
       return (0, 0);
     }
 
-    (uint reserveA, uint reserveB) = _getReserves(tokenA, tokenB, stable);
+    (uint reserveA, uint reserveB) = _getReserves(tokenA, tokenB, stable, fee);
     uint _totalSupply = IERC20(_pair).totalSupply();
     // using balances ensures pro-rata distribution
     amountA = liquidity * reserveA / _totalSupply;
@@ -188,6 +202,7 @@ contract StrRouter01 {
     address tokenA,
     address tokenB,
     bool stable,
+    uint16 fee,
     uint amountADesired,
     uint amountBDesired,
     uint amountAMin,
@@ -195,23 +210,23 @@ contract StrRouter01 {
   ) internal returns (uint amountA, uint amountB) {
     require(amountADesired >= amountAMin, "StrRouter: DESIRED_A_AMOUNT");
     require(amountBDesired >= amountBMin, "StrRouter: DESIRED_B_AMOUNT");
-    // create the pair if it doesn't exist yet
-    address _pair = IFactory(factory).getPair(tokenA, tokenB, stable);
+    // create the pair if it doesn"t exist yet
+    address _pair = IFactory(factory).getPair(tokenA, tokenB, stable, fee);
     if (_pair == address(0)) {
-      _pair = IFactory(factory).createPair(tokenA, tokenB, stable);
+      _pair = IFactory(factory).createPair(tokenA, tokenB, stable, fee);
     }
-    (uint reserveA, uint reserveB) = _getReserves(tokenA, tokenB, stable);
+    (uint reserveA, uint reserveB) = _getReserves(tokenA, tokenB, stable, fee);
     if (reserveA == 0 && reserveB == 0) {
       (amountA, amountB) = (amountADesired, amountBDesired);
     } else {
       uint amountBOptimal = _quoteLiquidity(amountADesired, reserveA, reserveB);
       if (amountBOptimal <= amountBDesired) {
-        require(amountBOptimal >= amountBMin, 'StrRouter: INSUFFICIENT_B_AMOUNT');
+        require(amountBOptimal >= amountBMin, "StrRouter: INSUFFICIENT_B_AMOUNT");
         (amountA, amountB) = (amountADesired, amountBOptimal);
       } else {
         uint amountAOptimal = _quoteLiquidity(amountBDesired, reserveB, reserveA);
         assert(amountAOptimal <= amountADesired);
-        require(amountAOptimal >= amountAMin, 'StrRouter: INSUFFICIENT_A_AMOUNT');
+        require(amountAOptimal >= amountAMin, "StrRouter: INSUFFICIENT_A_AMOUNT");
         (amountA, amountB) = (amountAOptimal, amountBDesired);
       }
     }
@@ -221,6 +236,7 @@ contract StrRouter01 {
     address tokenA,
     address tokenB,
     bool stable,
+    uint16 fee,
     uint amountADesired,
     uint amountBDesired,
     uint amountAMin,
@@ -232,12 +248,13 @@ contract StrRouter01 {
       tokenA,
       tokenB,
       stable,
+      fee,
       amountADesired,
       amountBDesired,
       amountAMin,
       amountBMin
     );
-    address pair = _pairFor(tokenA, tokenB, stable);
+    address pair = _pairFor(tokenA, tokenB, stable, fee);
     SafeERC20.safeTransferFrom(IERC20(tokenA), msg.sender, pair, amountA);
     SafeERC20.safeTransferFrom(IERC20(tokenB), msg.sender, pair, amountB);
     liquidity = IPair(pair).mint(to);
@@ -246,26 +263,27 @@ contract StrRouter01 {
   function addLiquidityETH(
     address token,
     bool stable,
+    uint16 fee,
     uint amountTokenDesired,
     uint amountTokenMin,
     uint amountETHMin,
-    address to,
-    uint deadline
-  ) external payable ensure(deadline) returns (uint amountToken, uint amountETH, uint liquidity) {
+    SwapDest memory swapDest
+  ) external payable ensure(swapDest.deadline) returns (uint amountToken, uint amountETH, uint liquidity) {
     (amountToken, amountETH) = _addLiquidity(
       token,
       address(weth),
       stable,
+      fee,
       amountTokenDesired,
       msg.value,
       amountTokenMin,
       amountETHMin
     );
-    address pair = _pairFor(token, address(weth), stable);
+    address pair = _pairFor(token, address(weth), stable, fee);
     IERC20(token).safeTransferFrom(msg.sender, pair, amountToken);
     weth.deposit{value : amountETH}();
     assert(weth.transfer(pair, amountETH));
-    liquidity = IPair(pair).mint(to);
+    liquidity = IPair(pair).mint(swapDest.to);
     // refund dust eth, if any
     if (msg.value > amountETH) _safeTransferETH(msg.sender, msg.value - amountETH);
   }
@@ -276,21 +294,21 @@ contract StrRouter01 {
     address tokenA,
     address tokenB,
     bool stable,
+    uint16 fee,
     uint liquidity,
     uint amountAMin,
     uint amountBMin,
-    address to,
-    uint deadline
+    SwapDest memory swapDest
   ) external returns (uint amountA, uint amountB) {
     return _removeLiquidity(
       tokenA,
       tokenB,
       stable,
+      fee,
       liquidity,
       amountAMin,
       amountBMin,
-      to,
-      deadline
+      swapDest
     );
   }
 
@@ -298,173 +316,176 @@ contract StrRouter01 {
     address tokenA,
     address tokenB,
     bool stable,
+    uint16 fee,
     uint liquidity,
     uint amountAMin,
     uint amountBMin,
-    address to,
-    uint deadline
-  ) internal ensure(deadline) returns (uint amountA, uint amountB) {
-    address pair = _pairFor(tokenA, tokenB, stable);
+    SwapDest memory swapDest
+  ) internal ensure(swapDest.deadline) returns (uint amountA, uint amountB) {
+    address pair = _pairFor(tokenA, tokenB, stable, fee);
     IERC20(pair).safeTransferFrom(msg.sender, pair, liquidity);
     // send liquidity to pair
-    (uint amount0, uint amount1) = IPair(pair).burn(to);
+    (uint amount0, uint amount1) = IPair(pair).burn(swapDest.to);
     (address token0,) = _sortTokens(tokenA, tokenB);
     (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
-    require(amountA >= amountAMin, 'StrRouter: INSUFFICIENT_A_AMOUNT');
-    require(amountB >= amountBMin, 'StrRouter: INSUFFICIENT_B_AMOUNT');
+    require(amountA >= amountAMin, "StrRouter: INSUFFICIENT_A_AMOUNT");
+    require(amountB >= amountBMin, "StrRouter: INSUFFICIENT_B_AMOUNT");
   }
 
   function removeLiquidityETH(
     address token,
     bool stable,
+    uint16 fee,
     uint liquidity,
     uint amountTokenMin,
     uint amountETHMin,
-    address to,
-    uint deadline
+    SwapDest memory swapDest
   ) external returns (uint amountToken, uint amountETH) {
     return _removeLiquidityETH(
       token,
       stable,
+      fee,
       liquidity,
       amountTokenMin,
       amountETHMin,
-      to,
-      deadline
+      swapDest
     );
   }
 
   function _removeLiquidityETH(
     address token,
     bool stable,
+    uint16 fee,
     uint liquidity,
     uint amountTokenMin,
     uint amountETHMin,
-    address to,
-    uint deadline
-  ) internal ensure(deadline) returns (uint amountToken, uint amountETH) {
+    SwapDest memory swapDest
+  ) internal ensure(swapDest.deadline) returns (uint amountToken, uint amountETH) {
     (amountToken, amountETH) = _removeLiquidity(
       token,
       address(weth),
       stable,
+      fee,
       liquidity,
       amountTokenMin,
       amountETHMin,
-      address(this),
-      deadline
+      swapDest
     );
-    IERC20(token).safeTransfer(to, amountToken);
+    IERC20(token).safeTransfer(swapDest.to, amountToken);
     weth.withdraw(amountETH);
-    _safeTransferETH(to, amountETH);
+    _safeTransferETH(swapDest.to, amountETH);
   }
 
   function removeLiquidityWithPermit(
     address tokenA,
     address tokenB,
     bool stable,
+    uint16 fee,
     uint liquidity,
     uint amountAMin,
     uint amountBMin,
-    address to,
-    uint deadline,
-    bool approveMax, uint8 v, bytes32 r, bytes32 s
+    SwapDest memory swapDest,
+    bool approveMax,
+    PermitParams memory permitParams
   ) external returns (uint amountA, uint amountB) {
-    address pair = _pairFor(tokenA, tokenB, stable);
+    address pair = _pairFor(tokenA, tokenB, stable, fee);
     {
       uint value = approveMax ? type(uint).max : liquidity;
-      IPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+      IPair(pair).permit(msg.sender, address(this), value, swapDest.deadline, permitParams.v, permitParams.r, permitParams.s);
     }
 
-    (amountA, amountB) = _removeLiquidity(tokenA, tokenB, stable, liquidity, amountAMin, amountBMin, to, deadline);
+    (amountA, amountB) = _removeLiquidity(tokenA, tokenB, stable, fee, liquidity, amountAMin, amountBMin, swapDest);
   }
 
   function removeLiquidityETHWithPermit(
     address token,
     bool stable,
+    uint16 fee,
     uint liquidity,
     uint amountTokenMin,
     uint amountETHMin,
-    address to,
-    uint deadline,
-    bool approveMax, uint8 v, bytes32 r, bytes32 s
+    SwapDest memory swapDest,
+    bool approveMax,
+    PermitParams memory permitParams
   ) external returns (uint amountToken, uint amountETH) {
-    address pair = _pairFor(token, address(weth), stable);
+    address pair = _pairFor(token, address(weth), stable, fee);
     uint value = approveMax ? type(uint).max : liquidity;
-    IPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
-    (amountToken, amountETH) = _removeLiquidityETH(token, stable, liquidity, amountTokenMin, amountETHMin, to, deadline);
+    IPair(pair).permit(msg.sender, address(this), value, swapDest.deadline, permitParams.v, permitParams.r, permitParams.s);
+    (amountToken, amountETH) = _removeLiquidityETH(token, stable, fee, liquidity, amountTokenMin, amountETHMin, swapDest);
   }
 
   function removeLiquidityETHSupportingFeeOnTransferTokens(
     address token,
     bool stable,
+    uint16 fee,
     uint liquidity,
     uint amountTokenMin,
     uint amountFTMMin,
-    address to,
-    uint deadline
+    SwapDest memory swapDest
   ) external returns (uint amountToken, uint amountFTM) {
     return _removeLiquidityETHSupportingFeeOnTransferTokens(
       token,
       stable,
+      fee,
       liquidity,
       amountTokenMin,
       amountFTMMin,
-      to,
-      deadline
+      swapDest
     );
   }
 
   function _removeLiquidityETHSupportingFeeOnTransferTokens(
     address token,
     bool stable,
+    uint16 fee,
     uint liquidity,
     uint amountTokenMin,
     uint amountFTMMin,
-    address to,
-    uint deadline
-  ) internal ensure(deadline) returns (uint amountToken, uint amountFTM) {
+    SwapDest memory swapDest
+  ) internal ensure(swapDest.deadline) returns (uint amountToken, uint amountFTM) {
     (amountToken, amountFTM) = _removeLiquidity(
       token,
       address(weth),
       stable,
+      fee,
       liquidity,
       amountTokenMin,
       amountFTMMin,
-      address(this),
-      deadline
+      swapDest
     );
-    IERC20(token).safeTransfer(to, IERC20(token).balanceOf(address(this)));
+    IERC20(token).safeTransfer(swapDest.to, IERC20(token).balanceOf(address(this)));
     weth.withdraw(amountFTM);
-    _safeTransferETH(to, amountFTM);
+    _safeTransferETH(swapDest.to, amountFTM);
   }
 
   function removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(
     address token,
     bool stable,
+    uint16 fee,
     uint liquidity,
     uint amountTokenMin,
     uint amountFTMMin,
-    address to,
-    uint deadline,
-    bool approveMax, uint8 v, bytes32 r, bytes32 s
+    SwapDest memory swapDest,
+    bool approveMax,
+    PermitParams memory permitParams
   ) external returns (uint amountToken, uint amountFTM) {
-    address pair = _pairFor(token, address(weth), stable);
+    address pair = _pairFor(token, address(weth), stable, fee);
     uint value = approveMax ? type(uint).max : liquidity;
-    IPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+    IPair(pair).permit(msg.sender, address(this), value, swapDest.deadline, permitParams.v, permitParams.r, permitParams.s);
     (amountToken, amountFTM) = _removeLiquidityETHSupportingFeeOnTransferTokens(
-      token, stable, liquidity, amountTokenMin, amountFTMMin, to, deadline
+      token, stable, fee, liquidity, amountTokenMin, amountFTMMin, swapDest
     );
   }
 
   // **** SWAP ****
   // requires the initial amount to have already been sent to the first pair
   function _swap(uint[] memory amounts, Route[] memory routes, address _to) internal virtual {
-    for (uint i = 0; i < routes.length; i++) {
+    for (uint i; i < routes.length; i++) {
       (address token0,) = _sortTokens(routes[i].from, routes[i].to);
       uint amountOut = amounts[i + 1];
       (uint amount0Out, uint amount1Out) = routes[i].from == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
-      address to = i < routes.length - 1 ? _pairFor(routes[i + 1].from, routes[i + 1].to, routes[i + 1].stable) : _to;
-      IPair(_pairFor(routes[i].from, routes[i].to, routes[i].stable)).swap(
+      address to = i < routes.length - 1 ? _pairFor(routes[i + 1].from, routes[i + 1].to, routes[i + 1].stable, routes[i + 1].fee) : _to;
+      IPair(_pairFor(routes[i].from, routes[i].to, routes[i].stable, routes[i].fee)).swap(
         amount0Out, amount1Out, to, new bytes(0)
       );
     }
@@ -474,7 +495,7 @@ contract StrRouter01 {
     for (uint i; i < routes.length; i++) {
       (address input, address output) = (routes[i].from, routes[i].to);
       (address token0,) = _sortTokens(input, output);
-      IPair pair = IPair(_pairFor(routes[i].from, routes[i].to, routes[i].stable));
+      IPair pair = IPair(_pairFor(routes[i].from, routes[i].to, routes[i].stable, routes[i].fee));
       uint amountInput;
       uint amountOutput;
       {// scope to avoid stack too deep errors
@@ -485,7 +506,7 @@ contract StrRouter01 {
         amountOutput = pair.getAmountOut(amountInput, input);
       }
       (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOutput) : (amountOutput, uint(0));
-      address to = i < routes.length - 1 ? _pairFor(routes[i + 1].from, routes[i + 1].to, routes[i + 1].stable) : _to;
+      address to = i < routes.length - 1 ? _pairFor(routes[i + 1].from, routes[i + 1].to, routes[i + 1].stable, routes[i + 1].fee) : _to;
       pair.swap(amount0Out, amount1Out, to, new bytes(0));
     }
   }
@@ -504,9 +525,9 @@ contract StrRouter01 {
     routes[0].to = tokenTo;
     routes[0].stable = stable;
     amounts = _getAmountsOut(amountIn, routes);
-    require(amounts[amounts.length - 1] >= amountOutMin, 'StrRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+    require(amounts[amounts.length - 1] >= amountOutMin, "StrRouter: INSUFFICIENT_OUTPUT_AMOUNT");
     IERC20(routes[0].from).safeTransferFrom(
-      msg.sender, _pairFor(routes[0].from, routes[0].to, routes[0].stable), amounts[0]
+      msg.sender, _pairFor(routes[0].from, routes[0].to, routes[0].stable, routes[0].fee), amounts[0]
     );
     _swap(amounts, routes, to);
   }
@@ -519,9 +540,9 @@ contract StrRouter01 {
     uint deadline
   ) external ensure(deadline) returns (uint[] memory amounts) {
     amounts = _getAmountsOut(amountIn, routes);
-    require(amounts[amounts.length - 1] >= amountOutMin, 'StrRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+    require(amounts[amounts.length - 1] >= amountOutMin, "StrRouter: INSUFFICIENT_OUTPUT_AMOUNT");
     IERC20(routes[0].from).safeTransferFrom(
-      msg.sender, _pairFor(routes[0].from, routes[0].to, routes[0].stable), amounts[0]
+      msg.sender, _pairFor(routes[0].from, routes[0].to, routes[0].stable, routes[0].fee), amounts[0]
     );
     _swap(amounts, routes, to);
   }
@@ -532,11 +553,11 @@ contract StrRouter01 {
   ensure(deadline)
   returns (uint[] memory amounts)
   {
-    require(routes[0].from == address(weth), 'StrRouter: INVALID_PATH');
+    require(routes[0].from == address(weth), "StrRouter: INVALID_PATH");
     amounts = _getAmountsOut(msg.value, routes);
-    require(amounts[amounts.length - 1] >= amountOutMin, 'StrRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+    require(amounts[amounts.length - 1] >= amountOutMin, "StrRouter: INSUFFICIENT_OUTPUT_AMOUNT");
     weth.deposit{value : amounts[0]}();
-    assert(weth.transfer(_pairFor(routes[0].from, routes[0].to, routes[0].stable), amounts[0]));
+    assert(weth.transfer(_pairFor(routes[0].from, routes[0].to, routes[0].stable, routes[0].fee), amounts[0]));
     _swap(amounts, routes, to);
   }
 
@@ -545,11 +566,11 @@ contract StrRouter01 {
   ensure(deadline)
   returns (uint[] memory amounts)
   {
-    require(routes[routes.length - 1].to == address(weth), 'StrRouter: INVALID_PATH');
+    require(routes[routes.length - 1].to == address(weth), "StrRouter: INVALID_PATH");
     amounts = _getAmountsOut(amountIn, routes);
-    require(amounts[amounts.length - 1] >= amountOutMin, 'StrRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+    require(amounts[amounts.length - 1] >= amountOutMin, "StrRouter: INSUFFICIENT_OUTPUT_AMOUNT");
     IERC20(routes[0].from).safeTransferFrom(
-      msg.sender, _pairFor(routes[0].from, routes[0].to, routes[0].stable), amounts[0]
+      msg.sender, _pairFor(routes[0].from, routes[0].to, routes[0].stable, routes[0].fee), amounts[0]
     );
     _swap(amounts, routes, address(this));
     weth.withdraw(amounts[amounts.length - 1]);
@@ -565,14 +586,14 @@ contract StrRouter01 {
   ) external ensure(deadline) {
     IERC20(routes[0].from).safeTransferFrom(
       msg.sender,
-      _pairFor(routes[0].from, routes[0].to, routes[0].stable),
+      _pairFor(routes[0].from, routes[0].to, routes[0].stable, routes[0].fee),
       amountIn
     );
     uint balanceBefore = IERC20(routes[routes.length - 1].to).balanceOf(to);
     _swapSupportingFeeOnTransferTokens(routes, to);
     require(
       IERC20(routes[routes.length - 1].to).balanceOf(to) - balanceBefore >= amountOutMin,
-      'StrRouter: INSUFFICIENT_OUTPUT_AMOUNT'
+      "StrRouter: INSUFFICIENT_OUTPUT_AMOUNT"
     );
   }
 
@@ -586,15 +607,15 @@ contract StrRouter01 {
   payable
   ensure(deadline)
   {
-    require(routes[0].from == address(weth), 'StrRouter: INVALID_PATH');
+    require(routes[0].from == address(weth), "StrRouter: INVALID_PATH");
     uint amountIn = msg.value;
     weth.deposit{value : amountIn}();
-    assert(weth.transfer(_pairFor(routes[0].from, routes[0].to, routes[0].stable), amountIn));
+    assert(weth.transfer(_pairFor(routes[0].from, routes[0].to, routes[0].stable, routes[0].fee), amountIn));
     uint balanceBefore = IERC20(routes[routes.length - 1].to).balanceOf(to);
     _swapSupportingFeeOnTransferTokens(routes, to);
     require(
       IERC20(routes[routes.length - 1].to).balanceOf(to) - balanceBefore >= amountOutMin,
-      'StrRouter: INSUFFICIENT_OUTPUT_AMOUNT'
+      "StrRouter: INSUFFICIENT_OUTPUT_AMOUNT"
     );
   }
 
@@ -608,13 +629,13 @@ contract StrRouter01 {
   external
   ensure(deadline)
   {
-    require(routes[routes.length - 1].to == address(weth), 'StrRouter: INVALID_PATH');
+    require(routes[routes.length - 1].to == address(weth), "StrRouter: INVALID_PATH");
     IERC20(routes[0].from).safeTransferFrom(
-      msg.sender, _pairFor(routes[0].from, routes[0].to, routes[0].stable), amountIn
+      msg.sender, _pairFor(routes[0].from, routes[0].to, routes[0].stable, routes[0].fee), amountIn
     );
     _swapSupportingFeeOnTransferTokens(routes, address(this));
     uint amountOut = IERC20(address(weth)).balanceOf(address(this));
-    require(amountOut >= amountOutMin, 'StrRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+    require(amountOut >= amountOutMin, "StrRouter: INSUFFICIENT_OUTPUT_AMOUNT");
     weth.withdraw(amountOut);
     _safeTransferETH(to, amountOut);
   }
@@ -625,13 +646,13 @@ contract StrRouter01 {
     address to,
     uint deadline
   ) external ensure(deadline) returns (uint[] memory) {
-    IERC20(routes[0].from).safeTransferFrom(msg.sender, _pairFor(routes[0].from, routes[0].to, routes[0].stable), amounts[0]);
+    IERC20(routes[0].from).safeTransferFrom(msg.sender, _pairFor(routes[0].from, routes[0].to, routes[0].stable, routes[0].fee), amounts[0]);
     _swap(amounts, routes, to);
     return amounts;
   }
 
   function _safeTransferETH(address to, uint value) internal {
     (bool success,) = to.call{value : value}(new bytes(0));
-    require(success, 'StrRouter: ETH_TRANSFER_FAILED');
+    require(success, "StrRouter: ETH_TRANSFER_FAILED");
   }
 }
