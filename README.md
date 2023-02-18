@@ -202,13 +202,13 @@ function distribute(address token) external
 
 | Name                | Address                                                                                                                   |
 |:--------------------|:--------------------------------------------------------------------------------------------------------------------------|
-| StrFactory         | [x](https://)  |
-| StrRouter01        | [x](https://)  |
-| GovernanceTreasury  | [x](https://)  |
-| BribeFactory        | [x](https://)  |
-| GaugesFactory       | [x](https://)  |
-| STR                | [x](https://)  |
-| StrMinter          | [x](https://)  |
-| StrVoter           | [x](https://)  |
-| veSTR              | [x](https://)  |
-| Controller          | [x](https://)  |
+| StrFactory          | [0x53E270672a6F6ba16671d70A3FB11E19aE5cAf4f](https://arbiscan.io/address/0x53E270672a6F6ba16671d70A3FB11E19aE5cAf4f)  |
+| StrRouter01         | [0xF10C960e5A35C11aA28575B3aC4FEd7a89dD03fF](https://arbiscan.io/address/0xF10C960e5A35C11aA28575B3aC4FEd7a89dD03fF)  |
+| GovernanceTreasury  | [0x3cc6bd5c30278393F4f440fb5E9f3CB45e045C65](https://arbiscan.io/address/0x3cc6bd5c30278393F4f440fb5E9f3CB45e045C65)  |
+| BribeFactory        | [0xbF4e6Cded720Fc901C1585a231180e1625F01DF7](https://arbiscan.io/address/0xbf4e6cded720fc901c1585a231180e1625f01df7)  |
+| GaugesFactory       | [0xe1f1EBB33403292D3D20F5425C43232DDfBe8F85](https://arbiscan.io/address/0xe1f1ebb33403292d3d20f5425c43232ddfbe8f85)  |
+| STR                 | [0x065F35BF534c47AEfa23BA71837778cE0a3CA9Ca](https://arbiscan.io/address/0x065f35bf534c47aefa23ba71837778ce0a3ca9ca)  |
+| StrMinter           | [0x40C0950353A6141D6C5119fb4268946EE9277a5c](https://arbiscan.io/address/0x40C0950353A6141D6C5119fb4268946EE9277a5c)  |
+| StrVoter            | [0xc913cc3c00c9a072dd16e0b7a0db6e7b46dd82d9](https://arbiscan.io/address/0xc913cc3c00c9a072dd16e0b7a0db6e7b46dd82d9)  |
+| veSTR               | [0x877b1D69dfB4573b86F9290248950A580d00829B](https://arbiscan.io/address/0x877b1D69dfB4573b86F9290248950A580d00829B)  |
+| sterlinglibrary     | [0x988d2829A76D2a2d39BfB4420b55Ba07c380853A](https://arbiscan.io/address/0x988d2829A76D2a2d39BfB4420b55Ba07c380853A)  |
