@@ -155,7 +155,9 @@ export class Deploy {
     minterSum: BigNumber,
     warmingUpPeriod = 2
   ) {
-    const [baseFactory, router, treasury] = await Deploy.deployDex(signer, networkToken);
+    const [baseFactory, router
+      // , treasury
+    ] = await Deploy.deployDex(signer, networkToken);
 
     const [
       controller,
@@ -185,7 +187,7 @@ export class Deploy {
       ve as Ve,
       voter as StrVoter,
       minter as StrMinter,
-      treasury as GovernanceTreasury
+      // treasury as GovernanceTreasury
     );
   }
 
@@ -194,11 +196,15 @@ export class Deploy {
     signer: SignerWithAddress,
     networkToken: string,
   ) {
-    const treasury = await Deploy.deployGovernanceTreasury(signer);
-    const baseFactory = await Deploy.deployStrFactory(signer, treasury.address);
+    // const treasury = await Deploy.deployGovernanceTreasury(signer);
+    const treasury = FantomAddresses.TreasuryWallet;
+    const baseFactory = await Deploy.deployStrFactory(signer, treasury);
+    // const baseFactory = await Deploy.deployStrFactory(signer, treasury.address);
     const router = await Deploy.deployStrRouter01(signer, baseFactory.address, networkToken);
 
-    return [baseFactory, router, treasury];
+    return [baseFactory, router
+      // , treasury
+    ];
   }
 
   public static async deployStrSystemOld(
