@@ -207,7 +207,7 @@ export class Deploy {
     ];
   }
 
-  public static async deployStrSystemOld(
+  public static async deployStrSystem(
     signer: SignerWithAddress,
     networkToken: string,
     voterTokens: string[],
@@ -251,7 +251,7 @@ export class Deploy {
     ];
   }
 
-  public static async deployStrSystem(
+  public static async deployStrSystemOld(
     signer: SignerWithAddress,
     networkToken: string,
     voterTokens: string[],

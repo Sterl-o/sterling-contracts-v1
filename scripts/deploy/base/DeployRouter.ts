@@ -7,7 +7,7 @@ import {FantomAddresses} from "../../addresses/FantomAddresses";
 async function main() {
   const signer = (await ethers.getSigners())[0];
 
-  const FACTORY = '0xf7736500339d2a26B8D945F63E06d8a3E2F0B5cF';
+  const FACTORY = '0xF7A23B9A9dCB8d0aff67012565C5844C20C11AFC';
 
   const router = await Deploy.deployStrRouter01(signer, FACTORY, FantomAddresses.WETH_TOKEN);
 

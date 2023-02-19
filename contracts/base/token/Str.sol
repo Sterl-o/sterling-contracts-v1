@@ -22,13 +22,13 @@ contract Str is IERC20 {
     _mint(msg.sender, 0);
   }
 
-  // Initial mint: total 750k
+  // Initial mint: total 755k
   // 100k for "Genesis" pools
   // 650k for treasury
   function initialMint(address _recipient) external {
       require(msg.sender == minter && !initialMinted);
       initialMinted = true;
-      _mint(_recipient, 75 * 1e4 * 1e18);
+      _mint(_recipient, 755 * 1e3 * 1e18);
   }
 
   // No checks as its meant to be once off to set minting rights to Minter

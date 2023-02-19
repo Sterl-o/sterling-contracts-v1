@@ -124,7 +124,7 @@ contract StrPair is IERC20, IPair, Reentrancy {
 
   function setSwapFeeChosen(uint _swapFeeChosen) external {
     require(IFactory(factory).treasury() == msg.sender, "StrPair: not StrFactory treasury");
-    require(_swapFeeChosen > 50, "StrPair: Fee too high amount / _swapFeeChosen = feePaidAmount")
+    require(_swapFeeChosen > 50, "StrPair: Fee too high amount / _swapFeeChosen = feePaidAmount");
     swapFeeChosen = _swapFeeChosen;
   }
 
