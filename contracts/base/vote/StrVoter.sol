@@ -30,6 +30,7 @@ contract StrVoter is IVoter, Reentrancy {
   /// @dev Rewards are released over 7 days
   uint internal constant DURATION = 7 days;
   address public minter;
+  address public treasury;
 
   /// @dev Total voting weight
   uint public totalWeight;
@@ -75,6 +76,7 @@ contract StrVoter is IVoter, Reentrancy {
     gaugeFactory = _gaugeFactory;
     bribeFactory = _bribeFactory;
     minter = msg.sender;
+    treasury = msg.sender;
   }
 
   function initialize(address[] memory _tokens, address _minter) external {
@@ -83,6 +85,11 @@ contract StrVoter is IVoter, Reentrancy {
       _whitelist(_tokens[i]);
     }
     minter = _minter;
+  }
+
+  function setTreasury(address _treasury) external {
+    require(msg.sender == treasury, "!treasury");
+    treasury = _treasury;
   }
 
   /// @dev Amount of tokens required to be hold for whitelisting.
@@ -186,10 +193,8 @@ contract StrVoter is IVoter, Reentrancy {
   }
 
   /// @dev Add token to whitelist. Only pools with whitelisted tokens can be added to gauge.
-  function whitelist(address _token, uint _tokenId) external {
-    require(_tokenId > 0, "!token");
-    require(msg.sender == IERC721(ve).ownerOf(_tokenId), "!owner");
-    require(IVe(ve).balanceOfNFT(_tokenId) > _listingFee(), "!power");
+  function whitelist(address _token) external {
+    require(msg.sender == treasury, "!treasury");
     _whitelist(_token);
   }
 
