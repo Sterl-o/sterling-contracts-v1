@@ -37,8 +37,8 @@ contract StrPair is IERC20, IPair, Reentrancy {
   uint public immutable chainId;
 
   uint internal constant MINIMUM_LIQUIDITY = 10 ** 3;
-  /// @dev 0.02% swap fee
-  uint internal constant SWAP_FEE = 5000;
+  /// @dev For example 500 = 0.02% OR 5000 = 0.002% swap fee
+  uint public swapFeeChosen = 500;
   /// @dev Capture oracle reading every 30 minutes
   uint internal constant PERIOD_SIZE = 1800;
 
@@ -98,9 +98,11 @@ contract StrPair is IERC20, IPair, Reentrancy {
     if (_stable) {
       name = string(abi.encodePacked("StableV1 AMM - ", IERC721Metadata(_token0).symbol(), "/", IERC721Metadata(_token1).symbol()));
       symbol = string(abi.encodePacked("sAMM-", IERC721Metadata(_token0).symbol(), "/", IERC721Metadata(_token1).symbol()));
+      swapFeeChosen = 5000; // Defaults swapFeeChosen
     } else {
       name = string(abi.encodePacked("VolatileV1 AMM - ", IERC721Metadata(_token0).symbol(), "/", IERC721Metadata(_token1).symbol()));
       symbol = string(abi.encodePacked("vAMM-", IERC721Metadata(_token0).symbol(), "/", IERC721Metadata(_token1).symbol()));
+      swapFeeChosen = 500; // Defaults swapFeeChosen
     }
 
     decimals0 = 10 ** IUnderlying(_token0).decimals();
@@ -118,6 +120,12 @@ contract StrPair is IERC20, IPair, Reentrancy {
       )
     );
     chainId = block.chainid;
+  }
+
+  function setSwapFeeChosen(uint _swapFeeChosen) external {
+    require(IFactory(factory).treasury() == msg.sender, "StrPair: PAUSE");
+    require(_swapFeeChosen > 50, "StrPair: Fee too high amount / _swapFeeChosen = feePaidAmount")
+    swapFeeChosen = _swapFeeChosen;
   }
 
   function observationLength() external view returns (uint) {
@@ -409,11 +417,11 @@ contract StrPair is IERC20, IPair, Reentrancy {
     {// scope for reserve{0,1}Adjusted, avoids stack too deep errors
       (address _token0, address _token1) = (token0, token1);
       // accrue fees for token0 and move them out of pool
-      if (amount0In > 0) _update0(amount0In / SWAP_FEE);
+      if (amount0In > 0) _update0(amount0In / swapFeeChosen);
       // accrue fees for token1 and move them out of pool
-      if (amount1In > 0) _update1(amount1In / SWAP_FEE);
+      if (amount1In > 0) _update1(amount1In / swapFeeChosen);
       // since we removed tokens, we need to reconfirm balances,
-      // can also simply use previous balance - amountIn/ SWAP_FEE,
+      // can also simply use previous balance - amountIn/ swapFeeChosen,
       // but doing balanceOf again as safety check
       _balance0 = IERC20(_token0).balanceOf(address(this));
       _balance1 = IERC20(_token1).balanceOf(address(this));
@@ -471,7 +479,7 @@ contract StrPair is IERC20, IPair, Reentrancy {
   function getAmountOut(uint amountIn, address tokenIn) external view override returns (uint) {
     (uint _reserve0, uint _reserve1) = (reserve0, reserve1);
     // remove fee from amount received
-    amountIn -= amountIn / SWAP_FEE;
+    amountIn -= amountIn / swapFeeChosen;
     return _getAmountOut(amountIn, tokenIn, _reserve0, _reserve1);
   }
 
