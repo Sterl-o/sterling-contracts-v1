@@ -12,6 +12,7 @@
     "compile": "npx hardhat compile",
     "deploy": "npx hardhat run --network arbitrumOne ./scripts/deploy/base/SetupDex.ts",
     "deploy2": "npx hardhat run --network arbitrumOne ./scripts/deploy/base/SetupStrSystem.ts",
+    "verify-lps": "npx hardhat verify --contract contracts/base/core/StrPair.sol:StrPair 0xb30D2814FAdA91C97c2FFbB27c9187a099617e3F --network arbitrumOne",
     "test": "npm run build && npx hardhat test",
     "coverage": "npm run build && npx cross-env NODE_OPTIONS=\"--max_old_space_size=8192\" hardhat coverage --temp artifacts --max-memory 4096",
     "slither": "npm run build && slither .",
